@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>折纸起始页</title>
   <meta name="description" content="在迷蒙光影中，让每一次搜索与跳转，都成为一场极简的日常仪式。" />
-  <link rel="icon" href="favicon.svg" />
+  <link rel="icon" href="assets/favicon.svg" />
 
   <!-- ============ 第三方库（CDN） ============ -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' };</script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-  <script src="lucide.min.js"></script>
+  <script src="assets/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet" />
@@ -22,7 +22,7 @@
        ============================================================ */
     :root {
       --overlay: linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.34));
-      --wallpaper: url('wallpapaer/bg-zp5z2w.jpg');
+      --wallpaper: url('assets/wallpapaer/bg-zp5z2w.jpg');
       --brightness: 1;           /* 背景亮度，由 #brightness 控制 */
       --search-opacity: 0.55;    /* 搜索框透明度，由 #searchOpacity 控制 */
       --pill-bg: rgba(255,255,255,0.80);
@@ -615,11 +615,11 @@
          4. 壁纸
          ============================================================ */
       const BUILTIN_WALLS = [
-        { id: 'zp5z2w', name: '花坡', full: 'wallpapaer/bg-zp5z2w.jpg', thumb: 'wallpapaer/tb-zp5z2w.jpg' },
-        { id: '2em38y', name: '夜鹿', full: 'wallpapaer/wp-2em38y.jpg', thumb: 'wallpapaer/tb-wp-2em38y.jpg' },
-        { id: 'e7kpl8', name: '落日', full: 'wallpapaer/wp-e7kpl8.jpg', thumb: 'wallpapaer/tb-wp-e7kpl8.jpg' },
-        { id: 'e89l8k', name: '晴空', full: 'wallpapaer/wp-e89l8k.jpg', thumb: 'wallpapaer/tb-wp-e89l8k.jpg' },
-        { id: 'zm9zlv', name: '波点', full: 'wallpapaer/wp-zm9zlv.jpg', thumb: 'wallpapaer/tb-wp-zm9zlv.jpg' },
+        { id: 'zp5z2w', name: '花坡', full: 'assets/wallpapaer/bg-zp5z2w.jpg', thumb: 'assets/wallpapaer/tb-zp5z2w.jpg' },
+        { id: '2em38y', name: '夜鹿', full: 'assets/wallpapaer/wp-2em38y.jpg', thumb: 'assets/wallpapaer/tb-wp-2em38y.jpg' },
+        { id: 'e7kpl8', name: '落日', full: 'assets/wallpapaer/wp-e7kpl8.jpg', thumb: 'assets/wallpapaer/tb-wp-e7kpl8.jpg' },
+        { id: 'e89l8k', name: '晴空', full: 'assets/wallpapaer/wp-e89l8k.jpg', thumb: 'assets/wallpapaer/tb-wp-e89l8k.jpg' },
+        { id: 'zm9zlv', name: '波点', full: 'assets/wallpapaer/wp-zm9zlv.jpg', thumb: 'assets/wallpapaer/tb-wp-zm9zlv.jpg' },
       ];
       const WALLS_KEY = 'zz-custom-walls';
       const wallpaperGrid = $('wallpaperGrid');
