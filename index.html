@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>折纸起始页</title>
+  <meta name="description" content="在迷蒙光影中，让每一次搜索与跳转，都成为一场极简的日常仪式。" />
+  <link rel="icon" href="favicon.svg" />
+
+  <!-- ============ 第三方库（CDN） ============ -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <script src="lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       1. 主题变量（浅色默认 / 深色）
+       ============================================================ */
+    :root {
+      --overlay: linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.34));
+      --wallpaper: url('wallpapaer/bg-zp5z2w.jpg');
+      --brightness: 1;           /* 背景亮度，由 #brightness 控制 */
+      --search-opacity: 0.55;    /* 搜索框透明度，由 #searchOpacity 控制 */
+      --pill-bg: rgba(255,255,255,0.80);
+      --pill-border: rgba(255,255,255,0.55);
+      --pill-focus-bg: rgba(255,255,255,0.90);
+      --pill-text: #1f2937;
+      --pill-placeholder: rgba(255,255,255,0.96);
+      --dock-bg: rgba(0,0,0,0.20);
+      --dock-border: rgba(255,255,255,0.10);
+      --tile-bg: rgba(255,255,255,0.96);
+      --text-main: #ffffff;
+    }
+    html.dark {
+      --overlay: linear-gradient(180deg, rgba(0,0,0,0.30), rgba(0,0,0,0.55));
+      --pill-bg: rgba(8,10,14,0.42);
+      --pill-border: rgba(255,255,255,0.08);
+      --pill-focus-bg: rgba(8,10,14,0.54);
+      --pill-text: #ffffff;
+      --pill-placeholder: rgba(255,255,255,0.72);
+      --dock-bg: rgba(0,0,0,0.45);
+      --dock-border: rgba(255,255,255,0.06);
+      --tile-bg: rgba(30,30,30,0.92);
+      --text-main: #ffffff;
+    }
+
+    /* ============================================================
+       2. 基础 / 背景
+       ============================================================ */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+      color: var(--text-main);
+      background: transparent;               /* 背景由 .bg-layer 承载，便于亮度仅作用于背景 */
+      transition: color 0.5s ease;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    .bg-layer {
+      position: fixed; inset: 0; z-index: -1;
+      background-color: #6175a0;
+      background-image:
+        var(--overlay),
+        var(--wallpaper),
+        linear-gradient(168deg, #43503a 0%, #67713f 34%, #93985f 64%, #b7ae71 100%); /* 兜底 */
+      background-size: auto, cover, auto;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: brightness(var(--brightness)) saturate(1.02);
+      transition: filter 0.2s ease;
+    }
+
+    /* ============================================================
+       3. 时钟 / 日期排版
+       ============================================================ */
+    #clock {
+      font-weight: 200;
+      letter-spacing: -0.04em;
+      text-shadow: 0 4px 24px rgba(0,0,0,0.28), 0 1px 2px rgba(0,0,0,0.20);
+    }
+    #date {
+      letter-spacing: 0.45em;
+      opacity: 0.62;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    }
+
+    /* ============================================================
+       4. 搜索胶囊
+       ============================================================ */
+    .search-pill {
+      position: relative;
+      isolation: isolate;                   /* 让 ::before 的负 z-index 限定在胶囊内 */
+      border: 1px solid var(--pill-border);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.20);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    }
+    .search-pill::before {
+      content: "";
+      position: absolute; inset: 0; border-radius: inherit;
+      background: var(--pill-bg);
+      opacity: var(--search-opacity);
+      z-index: -1;
+      transition: opacity 0.2s ease, background 0.3s ease;
+    }
+    .search-pill:focus-within {
+      border-color: rgba(255,255,255,0.45);
+      transform: scale(1.02);
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.12), 0 16px 44px rgba(0,0,0,0.28);
+    }
+    .search-pill:focus-within::before { background: var(--pill-focus-bg); }
+
+    /* 输入：占位符阴影 / 去掉原生 × 清除按钮 */
+    #searchInput::placeholder { text-shadow: 0 1px 8px rgba(0,0,0,0.55); }
+    #searchInput::-webkit-search-cancel-button,
+    #searchInput::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+    #searchInput::-ms-clear { display: none; }
+
+    /* 左侧引擎按钮 / 右侧放大镜：绝对定位覆盖，输入文字始终居中，两状态中心一致 */
+    #engineBtn { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }
+    #searchGo { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+    #searchHint { color: rgba(255,255,255,0.88); text-shadow: 0 1px 8px rgba(0,0,0,0.6); }
+
+    /* 初始隐藏，聚焦后淡入 */
+    #engineBtn, #searchGo {
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+    #searchHint { display: none; }
+    #searchForm:focus-within #engineBtn,
+    #searchForm:focus-within #searchGo {
+      opacity: 1; visibility: visible; pointer-events: auto;
+    }
+    #searchForm:focus-within #searchHint { display: block; animation: fadeIn 0.3s ease; }
+
+    /* ============================================================
+       5. 悬浮面板基类（引擎菜单 / 设置面板 / 联想下拉）
+       ============================================================ */
+    .panel {
+      background: rgba(245,247,250,0.94);
+      border: 1px solid rgba(255,255,255,0.6);
+      backdrop-filter: blur(18px) saturate(150%);
+      -webkit-backdrop-filter: blur(18px) saturate(150%);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.30);
+      color: #1f2937;
+    }
+
+    /* 引擎菜单项 */
+    .engine-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px 12px; border-radius: 10px; cursor: pointer;
+      font-size: 14px; transition: background 0.15s ease;
+    }
+    .engine-item:hover { background: rgba(0,0,0,0.06); }
+    .engine-item.active { background: rgba(59,130,246,0.12); color: #1d4ed8; }
+    .engine-item .badge {
+      min-width: 26px; height: 26px; flex: none;
+      display: grid; place-items: center; border-radius: 8px;
+      color: #fff; font-size: 11px; font-weight: 700;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+    .engine-item .key { margin-left: auto; font-size: 12px; color: #9aa1ad; }
+    .engine-pref {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 11px 12px; font-size: 14px; color: #4b5563; cursor: pointer;
+      border-top: 1px solid rgba(0,0,0,0.08); background: transparent;
+    }
+    .engine-pref:hover { background: rgba(0,0,0,0.05); }
+
+    /* 搜索联想下拉：半透明毛玻璃，透明度跟随搜索框 */
+    .suggest-menu {
+      background: rgba(255,255,255, calc(var(--search-opacity, 0.55) * 0.55));
+      border: 1px solid rgba(255,255,255,0.45);
+      backdrop-filter: blur(22px) saturate(160%);
+      -webkit-backdrop-filter: blur(22px) saturate(160%);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+      color: #1f2937;
+      scrollbar-width: none; -ms-overflow-style: none;   /* 隐藏滚动条 */
+    }
+    .suggest-menu::-webkit-scrollbar { display: none; }
+    .suggest-item {
+      display: block; width: calc(100% - 12px); margin: 2px 6px;
+      padding: 11px 14px; text-align: left;
+      font-size: 15px; font-weight: 600; color: #111827;
+      border-radius: 10px; cursor: pointer; background: transparent; border: 0;
+      transition: background 0.12s ease, color 0.12s ease;
+    }
+    .suggest-item:hover,
+    .suggest-item.active { background: rgba(59,130,246,0.60); color: #fff; font-weight: 700; }
+
+    /* ============================================================
+       6. 设置面板
+       ============================================================ */
+    /* 折叠分区（accordion） */
+    .acc { border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .acc:last-child { border-bottom: 0; }
+    .acc-head {
+      display: flex; align-items: center; justify-content: space-between; width: 100%;
+      padding: 11px 4px; font-size: 13px; font-weight: 600; color: #1f2937;
+      cursor: pointer; background: transparent; border: 0;
+    }
+    .acc-head i { color: #9aa1ad; transition: transform 0.25s ease; }
+    .acc.open .acc-head i { transform: rotate(180deg); }
+    .acc-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
+    .acc.open .acc-body { grid-template-rows: 1fr; }
+    .acc-body .acc-inner { overflow: hidden; }
+
+    /* 设置面板：三张卡（显示/壁纸/底部导航），各自整体折叠 */
+    .settings-card {
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.02);
+      margin-bottom: 8px; overflow: hidden;
+    }
+    .settings-card:last-child { margin-bottom: 0; }
+    .settings-card .acc { border-bottom: 0; }
+    .settings-card .acc-head { padding: 12px 10px; }
+
+    /* 显示卡内：外观 / 亮度 / 搜索框 直接平铺 */
+    .set-item { padding: 4px 6px 8px; }
+    .set-item + .set-item { border-top: 1px solid rgba(0,0,0,0.06); padding-top: 9px; }
+    .set-label {
+      font-size: 12px; color: #9aa1ad; letter-spacing: 0.04em;
+      margin: 0 2px 6px;
+    }
+    .set-item .settings-row { padding: 8px 6px; }
+    .set-item .brightness-row { padding: 2px 6px; }
+
+    /* 搜索引擎编辑器 */
+    .engine-set-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 8px; border-radius: 8px; margin-bottom: 4px;
+      background: rgba(0,0,0,0.03); cursor: pointer; transition: background 0.15s ease;
+    }
+    .engine-set-row:hover { background: rgba(0,0,0,0.07); }
+    .engine-set-row.active { background: var(--accent-soft, rgba(59,130,246,0.12)); }
+    .engine-set-badge {
+      width: 26px; height: 26px; border-radius: 7px; flex: none;
+      display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700;
+    }
+    .engine-set-name { flex: 1; font-size: 13px; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .engine-set-row .cur { font-size: 10px; color: #fff; background: var(--accent,#3b82f6); border-radius: 6px; padding: 2px 6px; flex: none; }
+    .engine-add {
+      width: 100%; margin-top: 6px; padding: 8px; border-radius: 8px;
+      font-size: 13px; color: #1f2937; background: rgba(0,0,0,0.04);
+      cursor: pointer; border: 0; transition: background 0.15s ease;
+    }
+    .engine-add:hover { background: rgba(0,0,0,0.08); }
+
+    .settings-row {
+      display: flex; width: 100%; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 10px; cursor: pointer;
+      font-size: 14px; color: #1f2937; background: transparent;
+      transition: background 0.15s ease;
+    }
+    .settings-row:hover { background: rgba(0,0,0,0.06); }
+
+    /* 滑块（亮度 / 透明度共用） */
+    .brightness-row { display: flex; align-items: center; gap: 10px; padding: 4px 12px 6px; }
+    .brightness-row i { color: #9aa1ad; }
+    .brightness-slider {
+      -webkit-appearance: none; appearance: none; flex: 1; height: 4px; border-radius: 999px;
+      background: rgba(0,0,0,0.18); outline: none; cursor: pointer;
+    }
+    .brightness-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+      background: #3b82f6; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: pointer;
+    }
+    .brightness-slider::-moz-range-thumb {
+      width: 16px; height: 16px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; cursor: pointer;
+    }
+    .brightness-val { min-width: 42px; text-align: right; font-size: 12px; color: #6b7280; }
+    .slider-label { width: 42px; font-size: 12px; color: #6b7280; flex: none; }
+
+    /* 壁纸缩略图 */
+    .wp-tile {
+      position: relative; aspect-ratio: 16/10; border-radius: 10px; overflow: hidden;
+      cursor: pointer; border: 2px solid transparent; background: #e5e7eb; padding: 0;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .wp-tile:hover { transform: translateY(-2px); }
+    .wp-tile.active { border-color: #3b82f6; }
+    .wp-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .wp-tile .name {
+      position: absolute; left: 6px; bottom: 4px; font-size: 10px; color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    }
+    .wp-tile .wp-del {
+      position: absolute; top: 4px; right: 4px; width: 18px; height: 18px;
+      border-radius: 50%; border: 0; background: rgba(0,0,0,0.55); color: #fff;
+      font-size: 11px; line-height: 1; cursor: pointer; display: none;
+      place-items: center; transition: background 0.15s ease;
+    }
+    .wp-tile:hover .wp-del { display: grid; }
+    .wp-tile .wp-del:hover { background: #d93025; }
+
+    /* 底部导航编辑器 */
+    .dock-edit-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 8px; border-radius: 8px; margin-bottom: 4px;
+      background: rgba(0,0,0,0.03);
+      cursor: pointer; transition: background 0.15s ease;
+    }
+    .dock-edit-row:hover { background: rgba(0,0,0,0.07); }
+    .dock-edit-row.hid { opacity: 0.45; }
+    .dock-edit-row.hid .dock-edit-name { text-decoration: line-through; }
+    .dock-edit-btn.hidebtn { color: #64748b; display: grid; place-items: center; }
+    .dock-edit-btn.hidebtn.on { color: #d93025; }
+    .dock-edit-row .dock-edit-icon {
+      width: 26px; height: 26px; border-radius: 7px; flex: none;
+      display: grid; place-items: center; color: #fff; font-size: 12px;
+    }
+    .dock-edit-name {
+      flex: 1; font-size: 13px; color: #1f2937; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    .dock-edit-btn {
+      flex: none; width: 22px; height: 22px; border-radius: 6px;
+      display: grid; place-items: center; font-size: 11px; line-height: 1;
+      color: #6b7280; background: transparent; cursor: pointer; border: 0;
+    }
+    .dock-edit-btn:hover { background: rgba(0,0,0,0.08); }
+    .dock-edit-btn:disabled { opacity: 0.35; cursor: default; }
+    .dock-add {
+      width: 100%; margin-top: 6px; padding: 8px; border-radius: 8px;
+      font-size: 13px; color: #1f2937; background: rgba(0,0,0,0.04);
+      cursor: pointer; border: 0; transition: background 0.15s ease;
+    }
+    .dock-add:hover { background: rgba(0,0,0,0.08); }
+
+    /* 轻提示 */
+    .toast {
+      position: fixed; left: 50%; bottom: 104px;
+      transform: translateX(-50%) translateY(8px);
+      z-index: 40; padding: 9px 18px; border-radius: 999px;
+      background: rgba(0,0,0,0.72); color: #fff; font-size: 13px;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ============================================================
+       7. 底部图标坞
+       ============================================================ */
+    .icon-dock {
+      background: var(--dock-bg);
+      border: 1px solid var(--dock-border);
+      box-shadow: 0 16px 44px rgba(0,0,0,0.35);
+    }
+    .icon-tile {
+      background: var(--tile-bg);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.20);
+    }
+    .icon-tile svg { width: 22px; height: 22px; }
+    .icon-tile i { font-size: 20px; }
+    .dock-edit-icon svg { width: 14px; height: 14px; }
+    .icon-tile:hover {
+      transform: translateY(-5px) scale(1.06);
+      box-shadow: 0 14px 28px rgba(0,0,0,0.35);
+    }
+    .dock-label { transition: color 0.25s ease; }
+    .icon-dock a:hover .dock-label { color: #fff; }
+
+    /* ============================================================
+       8. 动画
+       ============================================================ */
+    .appear { animation: rise 0.8s ease both; }
+    .appear-2 { animation: rise 0.8s ease 0.15s both; }
+    .appear-3 { animation: rise 0.8s ease 0.30s both; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(14px); }
+      /* 结束不留 transform，避免生成 backdrop root 破坏 backdrop-filter */
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+
+<body class="min-h-screen">
+  <!-- 背景层（壁纸 + 覆盖层，亮度可调） -->
+  <div id="bgLayer" class="bg-layer"></div>
+
+  <!-- ============ 右上角：设置（外观 + 亮度 + 搜索框 + 壁纸） ============ -->
+  <div class="fixed right-5 top-5 z-30">
+    <button id="settingsBtn" title="设置"
+            class="grid h-10 w-10 place-items-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur-md transition hover:scale-110 hover:bg-white/30">
+      <i class="fa-solid fa-gear text-base"></i>
+    </button>
+
+    <!-- 设置面板（默认隐藏；显示/壁纸/底部导航 三张卡，各自整体折叠，默认收起） -->
+    <div id="settingsPanel" class="panel absolute right-0 top-12 z-30 hidden w-72 rounded-2xl p-3 max-h-[85vh] overflow-y-auto">
+      <!-- 显示卡：外观 / 亮度 / 搜索框 直接平铺 -->
+      <div class="settings-card">
+        <div class="acc">
+          <button type="button" class="acc-head"><span>显示</span><i class="fa-solid fa-chevron-down"></i></button>
+          <div class="acc-body"><div class="acc-inner">
+            <div class="set-item">
+              <p class="set-label">外观</p>
+              <button id="themeToggle" class="settings-row">
+                <i id="themeIcon" class="fa-solid fa-sun text-base"></i>
+                <span id="themeLabel">浅色模式</span>
+              </button>
+            </div>
+            <div class="set-item">
+              <p class="set-label">亮度</p>
+              <div class="brightness-row">
+                <i class="fa-solid fa-sun text-sm"></i>
+                <input id="brightness" type="range" min="0.6" max="1.4" step="0.05" value="1.2" class="brightness-slider" />
+                <span id="brightnessVal" class="brightness-val">100%</span>
+              </div>
+            </div>
+            <div class="set-item">
+              <p class="set-label">搜索框</p>
+              <div class="brightness-row">
+                <span class="slider-label">透明度</span>
+                <input id="searchOpacity" type="range" min="0.2" max="1" step="0.05" value="0.55" class="brightness-slider" />
+                <span id="searchOpacityVal" class="brightness-val">55%</span>
+              </div>
+            </div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- 搜索引擎卡 -->
+      <div class="settings-card">
+        <div class="acc">
+          <button type="button" class="acc-head"><span>搜索引擎</span><i class="fa-solid fa-chevron-down"></i></button>
+          <div class="acc-body"><div class="acc-inner">
+            <div id="engineEditor" class="pt-1"></div>
+            <button type="button" id="engineAdd" class="engine-add">＋ 添加搜索引擎</button>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- 壁纸卡 -->
+      <div class="settings-card">
+        <div class="acc">
+          <button type="button" class="acc-head"><span>壁纸</span><i class="fa-solid fa-chevron-down"></i></button>
+          <div class="acc-body"><div class="acc-inner">
+            <div id="wallpaperGrid" class="grid grid-cols-3 gap-2 pt-1"></div>
+            <button type="button" id="wallAdd" class="engine-add">＋ 上传本地壁纸</button>
+            <input type="file" id="wallFile" accept="image/*" class="hidden" />
+          </div></div>
+        </div>
+      </div>
+
+      <!-- 底部导航卡 -->
+      <div class="settings-card">
+        <div class="acc">
+          <button type="button" class="acc-head"><span>底部导航</span><i class="fa-solid fa-chevron-down"></i></button>
+          <div class="acc-body"><div class="acc-inner">
+            <div id="dockEditor" class="dock-editor"></div>
+            <button type="button" id="dockAdd" class="dock-add">＋ 添加站点</button>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 中央主区域：大时钟 + 搜索 ============ -->
+  <main class="flex min-h-screen flex-col items-center justify-start px-4 pt-[13vh]">
+    <p id="clock" class="appear select-none text-[5.5rem] font-light leading-none tracking-tight text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.30)] md:text-[7rem]">00:00</p>
+    <p id="date" class="appear-2 mt-4 text-sm font-light tracking-[0.35em] text-white/80">2026年01月01日</p>
+
+    <!-- 搜索框：引擎切换 + 输入 + 搜索按钮 + 引擎/联想下拉 -->
+    <form id="searchForm" class="appear-2 mt-9 w-full max-w-md" autocomplete="off">
+      <div class="relative">
+        <div class="search-pill flex items-center rounded-full h-14">
+          <button id="engineBtn" type="button" title="切换搜索引擎"
+                  class="grid h-10 w-10 shrink-0 place-items-center rounded-full transition hover:bg-white/15">
+            <span id="engineBadge" class="grid h-7 min-w-7 place-items-center rounded-lg text-[12px] font-bold text-white shadow" style="background:#4285F4">G</span>
+          </button>
+          <input id="searchInput" type="search" placeholder="搜索"
+                 class="w-full bg-transparent px-14 text-center text-lg font-bold tracking-wide text-[var(--pill-text)] placeholder:text-[var(--pill-placeholder)] outline-none" />
+          <button id="searchGo" type="submit" title="搜索" class="shrink-0 pr-1 text-[var(--pill-text)]">
+            <i class="fa-solid fa-magnifying-glass text-xl"></i>
+          </button>
+        </div>
+
+        <!-- 引擎下拉（默认隐藏） -->
+        <div id="engineMenu" class="panel absolute left-0 top-full z-30 mt-3 hidden w-60 overflow-hidden rounded-2xl">
+          <div id="engineList" class="max-h-72 overflow-y-auto p-1.5"></div>
+        </div>
+
+        <!-- 搜索联想下拉（默认隐藏） -->
+        <div id="suggestMenu" class="panel suggest-menu absolute left-0 top-full z-30 mt-3 hidden w-full max-h-80 overflow-y-auto rounded-2xl"></div>
+      </div>
+      <p id="searchHint" class="mt-3 text-center text-xs text-white/50">按 <kbd class="rounded bg-white/15 px-1.5">/</kbd> 聚焦 · 按 <kbd class="rounded bg-white/15 px-1.5">Esc</kbd> 清空/关闭 · <kbd class="rounded bg-white/15 px-1.5">Alt+1~6</kbd> 选引擎</p>
+    </form>
+  </main>
+
+  <!-- 轻提示 -->
+  <span id="toast" class="toast"></span>
+
+  <!-- ============ 底部：图标坞（内容由 JS 生成） ============ -->
+  <div class="fixed inset-x-0 bottom-8 z-10 flex justify-center">
+    <nav id="dock" class="icon-dock appear-3 flex items-end gap-1.5 rounded-3xl px-5 py-3.5"></nav>
+  </div>
+
+  <!-- ============ 底部备案 ============ -->
+  <footer class="fixed inset-x-0 bottom-2 z-10 text-center text-[11px] tracking-widest text-white/40">
+    © 2026 折纸 · 始于极简，不止于快捷
+  </footer>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* ============================================================
+         工具
+         ============================================================ */
+      const $ = (id) => document.getElementById(id);
+      const showToast = (() => {                 // 轻提示，1.5s 自动消失
+        let timer;
+        return (msg) => {
+          const t = $('toast');
+          t.textContent = msg;
+          t.classList.add('show');
+          clearTimeout(timer);
+          timer = setTimeout(() => t.classList.remove('show'), 1500);
+        };
+      })();
+      const pad = (n) => String(n).padStart(2, '0');
+      const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+      const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const store = {
+        get: (k, d) => { const v = localStorage.getItem(k); return v == null ? d : v; },
+        set: (k, v) => localStorage.setItem(k, v),
+      };
+      // 配置版本迁移：旧版本访问过已在 localStorage 写入旧默认值，导致新默认不生效。
+      // 检测到版本低于 CFG_VER，一次性重置关键设置为新默认，再打上当前版本号。
+      const CFG_VER = 5;
+      try {
+        const ver = parseInt(store.get('zz-cfg-ver', '0'), 10) || 0;
+        if (ver < CFG_VER) {
+          store.set('zz-brightness', '1.2');   // 亮度默认 120%
+          store.set('zz-searchop', '0.55');    // 透明度默认 55%
+          // 导航迁移：把默认站点(含隐藏项)补齐进现有导航；按 url 去重，
+          // 已有站点一律保留(含其 hidden 状态/顺序)，仅追加缺失的默认项。
+          let cur = [];
+          try { cur = JSON.parse(store.get('zz-dock', '[]')); } catch (_) { cur = []; }
+          if (!Array.isArray(cur)) cur = [];
+          const have = new Set(cur.map(x => x.url));
+          DEFAULT_DOCK_SITES.forEach(d => {
+            if (!have.has(d.url)) cur.push({ ...d });
+          });
+          if (cur.length > 0) store.set('zz-dock', JSON.stringify(cur));
+          store.set('zz-cfg-ver', String(CFG_VER));
+        }
+      } catch (_) { /* 迁移失败不阻塞 */ }
+      // 北京时间（UTC+8），不受本地时区影响
+      function beijingNow() {
+        const d = new Date();
+        return new Date(d.getTime() + d.getTimezoneOffset() * 60000 + 8 * 3600000);
+      }
+      // 初始化带滑块+值标签的偏好项（亮度/透明度共用）
+      function bindRange(id, valId, key, { min, max, step, def, apply }) {
+        const input = $(id), val = $(valId);
+        input.min = min; input.max = max; input.step = step;
+        const norm = (v) => clamp(Number.isFinite(parseFloat(v)) ? parseFloat(v) : def, min, max);
+        const paint = (v) => { input.value = v; val.textContent = Math.round(v * 100) + '%'; apply(v); };
+        paint(norm(store.get(key, def)));
+        input.addEventListener('input', () => { const v = norm(input.value); paint(v); store.set(key, v); });
+      }
+
+      /* ============================================================
+         1. 时钟（北京时间 HH:MM + 日期）
+         ============================================================ */
+      const clockEl = $('clock'), dateEl = $('date');
+      function updateClock() {
+        const b = beijingNow();
+        clockEl.textContent = `${pad(b.getHours())}:${pad(b.getMinutes())}`;
+        dateEl.textContent = `${b.getFullYear()}年${pad(b.getMonth() + 1)}月${pad(b.getDate())}日`;
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      /* ============================================================
+         2. 深色 / 浅色模式
+         ============================================================ */
+      const themeToggle = $('themeToggle'), themeIcon = $('themeIcon'), themeLabel = $('themeLabel');
+      const DARK = 'dark';
+      function applyTheme(theme) {
+        const isDark = theme === DARK;
+        document.documentElement.classList.toggle(DARK, isDark);
+        themeIcon.className = isDark ? 'fa-solid fa-moon text-base' : 'fa-solid fa-sun text-base';
+        themeLabel.textContent = isDark ? '深色模式' : '浅色模式';
+        store.set('zz-theme', theme);
+      }
+      applyTheme(store.get('zz-theme', 'light'));
+      themeToggle.addEventListener('click', () => {
+        applyTheme(document.documentElement.classList.contains(DARK) ? 'light' : DARK);
+      });
+
+      /* ============================================================
+         3. 背景亮度 / 搜索框透明度
+         ============================================================ */
+      bindRange('brightness', 'brightnessVal', 'zz-brightness', {
+        min: 0.6, max: 1.4, step: 0.05, def: 1.2,
+        apply: (v) => document.documentElement.style.setProperty('--brightness', v.toFixed(2)),
+      });
+      bindRange('searchOpacity', 'searchOpacityVal', 'zz-searchop', {
+        min: 0.2, max: 1, step: 0.05, def: 0.55,
+        apply: (v) => document.documentElement.style.setProperty('--search-opacity', v.toFixed(2)),
+      });
+
+      /* ============================================================
+         4. 壁纸
+         ============================================================ */
+      const BUILTIN_WALLS = [
+        { id: 'zp5z2w', name: '花坡', full: 'wallpapaer/bg-zp5z2w.jpg', thumb: 'wallpapaer/tb-zp5z2w.jpg' },
+        { id: '2em38y', name: '夜鹿', full: 'wallpapaer/wp-2em38y.jpg', thumb: 'wallpapaer/tb-wp-2em38y.jpg' },
+        { id: 'e7kpl8', name: '落日', full: 'wallpapaer/wp-e7kpl8.jpg', thumb: 'wallpapaer/tb-wp-e7kpl8.jpg' },
+        { id: 'e89l8k', name: '晴空', full: 'wallpapaer/wp-e89l8k.jpg', thumb: 'wallpapaer/tb-wp-e89l8k.jpg' },
+        { id: 'zm9zlv', name: '波点', full: 'wallpapaer/wp-zm9zlv.jpg', thumb: 'wallpapaer/tb-wp-zm9zlv.jpg' },
+      ];
+      const WALLS_KEY = 'zz-custom-walls';
+      const wallpaperGrid = $('wallpaperGrid');
+      let customWalls = loadCustomWalls();
+      const allWalls = () => BUILTIN_WALLS.concat(customWalls);
+      let currentWall = allWalls().some(w => w.id === store.get('zz-wallpaper')) ? store.get('zz-wallpaper') : allWalls()[0].id;
+
+      function loadCustomWalls() {
+        try { const v = JSON.parse(store.get(WALLS_KEY, '[]')); return Array.isArray(v) ? v : []; }
+        catch (_) { return []; }
+      }
+      function saveCustomWalls() { try { store.set(WALLS_KEY, JSON.stringify(customWalls)); } catch (_) {} }
+
+      function renderWalls() {
+        const W = allWalls();
+        wallpaperGrid.innerHTML = W.map(w => `
+          <button type="button" class="wp-tile${w.id === currentWall ? ' active' : ''}" title="${w.name}" data-id="${w.id}" data-custom="${w.custom ? '1' : ''}">
+            <img src="${w.thumb}" alt="${w.name}" loading="lazy"><span class="name">${escapeHtml(w.name)}</span>
+            ${w.custom ? '<span class="wp-del" data-del="' + w.id + '" title="删除">✕</span>' : ''}
+          </button>`).join('');
+        wallpaperGrid.querySelectorAll('.wp-tile').forEach((t) => {
+          t.addEventListener('click', () => { currentWall = t.dataset.id; store.set('zz-wallpaper', currentWall); applyWall(); showToast('壁纸已切换'); });
+        });
+        wallpaperGrid.querySelectorAll('.wp-del').forEach((d) => {
+          d.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = d.dataset.del;
+            customWalls = customWalls.filter(w => w.id !== id);
+            saveCustomWalls();
+            if (currentWall === id) { currentWall = allWalls()[0].id; store.set('zz-wallpaper', currentWall); }
+            applyWall();
+            showToast('已删除壁纸');
+          });
+        });
+      }
+      function applyWall() {
+        const w = allWalls().find(x => x.id === currentWall) || allWalls()[0];
+        document.documentElement.style.setProperty('--wallpaper', `url("${w.full}")`);
+        renderWalls();
+      }
+      applyWall();
+
+      // 上传本地壁纸：压缩成 dataURL 后存入 localStorage
+      const wallAdd = $('wallAdd'), wallFile = $('wallFile');
+      function readWallAsDataURL(file, cb) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const MAXW = 1600;
+            let w = img.width, h = img.height;
+            if (w > MAXW) { h = Math.round(h * MAXW / w); w = MAXW; }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            cb(dataUrl);
+          };
+          img.onerror = () => showToast('图片读取失败');
+          img.src = reader.result;
+        };
+        reader.onerror = () => showToast('文件读取失败');
+        reader.readAsDataURL(file);
+      }
+      function addCustomWall(file) {
+        const maxCount = 8;
+        if (customWalls.length >= maxCount) {
+          showToast('最多保存 ' + maxCount + ' 张自定义壁纸，请先删除');
+          return;
+        }
+        readWallAsDataURL(file, (dataUrl) => {
+          const id = 'w' + Date.now();
+          const name = (file.name || '本地壁纸').replace(/\.[^.]+$/, '').slice(0, 12) || '本地壁纸';
+          customWalls.push({ id, name, full: dataUrl, thumb: dataUrl, custom: true });
+          saveCustomWalls();
+          currentWall = id; store.set('zz-wallpaper', id);
+          applyWall();
+          showToast('壁纸已添加');
+        });
+      }
+      wallAdd.addEventListener('click', () => wallFile.click());
+      wallFile.addEventListener('change', () => {
+        const f = wallFile.files && wallFile.files[0];
+        if (f) addCustomWall(f);
+        wallFile.value = '';
+      });
+
+      /* ============================================================
+         5. 搜索引擎（内置 + 用户自定义，localStorage 持久化）
+         ============================================================ */
+      const BUILTIN_ENGINES = [
+        { id: 'baidu',   name: '百度',    badge: '百',  color: '#2932e1', url: 'https://www.baidu.com/s?wd={q}',     key: 1 },
+        { id: 'bing',    name: '必应',    badge: 'B',   color: '#0f7b8a', url: 'https://www.bing.com/search?q={q}',   key: 2 },
+        { id: 'google',  name: '谷歌',    badge: 'G',   color: '#4285F4', url: 'https://www.google.com/search?q={q}', key: 3 },
+        { id: 'yandex',  name: 'Yandex',  badge: 'Y',   color: '#FC3F1D', url: 'https://yandex.com/search/?text={q}', key: 4 },
+        { id: 'sogou',   name: '搜狗',    badge: 'S',   color: '#FB6022', url: 'https://www.sogou.com/web?query={q}', key: 5 },
+        { id: 'so360',   name: '360搜索', badge: '360', color: '#21BD58', url: 'https://www.so.com/s?q={q}',         key: 6 },
+      ];
+      const ENGINES_KEY = 'zz-engines';
+      const ENGINE_KEY = 'zz-engine';
+      const HIDDEN_KEY = 'zz-hidden-engines';   // 被删除的内置引擎 id
+      const engineMenu = $('engineMenu'), engineList = $('engineList');
+      const engineBtn = $('engineBtn'), engineBadge = $('engineBadge');
+      const engineEditor = $('engineEditor'), engineAdd = $('engineAdd');
+      const DEFAULT_ENGINE = '必应';
+      // 预设引擎色彩（随机分配，用户不可选）
+      const ENGINE_COLORS = ['#2932e1','#0f7b8a','#4285F4','#FC3F1D','#FB6022','#21BD58','#8B5CF6','#EC4899','#F59E0B','#14B8A6'];
+      let userEngines = loadUserEngines();
+      let hiddenBuiltins = loadHiddenEngines();
+      const ENGINES = effectiveEngines();
+      let currentEngine = ENGINES.some(e => e.name === store.get(ENGINE_KEY)) ? store.get(ENGINE_KEY) : DEFAULT_ENGINE;
+      const getEngine = (name) => ENGINES.find(e => e.name === name) || ENGINES[0] || BUILTIN_ENGINES[0];
+
+      function loadUserEngines() {
+        try { const v = JSON.parse(store.get(ENGINES_KEY, '[]')); return Array.isArray(v) ? v.map((e, i) => ({ id: e.id || ('c' + i + '_' + Date.now()), ...e })) : []; }
+        catch (_) { return []; }
+      }
+      function saveUserEngines() { store.set(ENGINES_KEY, JSON.stringify(userEngines)); }
+      function loadHiddenEngines() {
+        try {
+          const v = JSON.parse(store.get(HIDDEN_KEY, '[]'));
+          if (!Array.isArray(v)) return [];
+          // 兼容旧存储（存的是名字）：转为对应内置引擎 id
+          return v.map(x => {
+            if (typeof x === 'string') { const b = BUILTIN_ENGINES.find(e => e.name === x); return b ? b.id : x; }
+            return x;
+          });
+        } catch (_) { return []; }
+      }
+      // 实际生效的引擎 = 内置(未删) + 用户自定义
+      function effectiveEngines() {
+        const overriddenIds = new Set(userEngines.map(u => u.id).filter(id => BUILTIN_ENGINES.some(b => b.id === id)));
+        const visibleBuiltin = BUILTIN_ENGINES.filter(b => !hiddenBuiltins.includes(b.id) && !overriddenIds.has(b.id));
+        const custom = userEngines.filter(u => !BUILTIN_ENGINES.some(b => b.id === u.id));
+        return visibleBuiltin.concat(custom).map((e, i) => ({ ...e, key: (i + 1) }));
+      }
+      // 统一拼搜索 URL：含 {q} 占位则替换，否则直接追加（兼容旧数据）
+      function buildSearchUrl(e, q) {
+        const enc = encodeURIComponent(q);
+        return String(e.url).indexOf('{q}') >= 0 ? String(e.url).replace(/\{q\}/g, enc) : e.url + enc;
+      }
+      // 常见搜索引擎：域名(不含协议/路径) → 搜索 URL 模板
+      const KNOWN_SEARCH = {
+        'baidu.com': 'https://www.baidu.com/s?wd={q}',
+        'bing.com': 'https://www.bing.com/search?q={q}',
+        'google.com': 'https://www.google.com/search?q={q}',
+        'duckduckgo.com': 'https://duckduckgo.com/?q={q}',
+        'sogou.com': 'https://www.sogou.com/web?query={q}',
+        'so.com': 'https://www.so.com/s?q={q}',
+        'yandex.com': 'https://yandex.com/search/?text={q}',
+        'yandex.ru': 'https://yandex.com/search/?text={q}',
+        'ecosia.org': 'https://www.ecosia.org/search?q={q}',
+        'brave.com': 'https://search.brave.com/search?q={q}',
+      };
+      // 智能导入：输入首页 URL 也能补全成带 {q} 的搜索 URL
+      function normalizeSearchUrl(raw) {
+        if (!raw) return '';
+        let u = raw.trim();
+        // 已含 {q} 占位 → 直接用
+        if (u.indexOf('{q}') >= 0) return u;
+        let host = u;
+        try {
+          const url = new URL(u.indexOf('://') >= 0 ? u : ('https://' + u));
+          host = url.hostname.replace(/^www\./, '');
+        } catch (_) {
+          host = u.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+        }
+        const tpl = KNOWN_SEARCH[host];
+        if (tpl) return tpl;
+        // 未知站点：若输入 URL 本身已含查询参数(如 ?q=)，原样返回；否则给提示
+        return (u.indexOf('://') >= 0 ? u : ('https://' + u)).replace(/\/$/, '') + '?q={q}';
+      }
+
+      function renderMenu() {
+        engineList.innerHTML = ENGINES.map(e => `
+          <div class="engine-item${e.name === currentEngine ? ' active' : ''}">
+            <span class="badge" style="background:${e.color}">${e.badge}</span>
+            <span>${e.name}</span><span class="key">Alt+${e.key}</span>
+          </div>`).join('');
+        engineList.querySelectorAll('.engine-item').forEach((row, i) => {
+          row.addEventListener('click', () => selectEngine(ENGINES[i].name, true));
+        });
+      }
+      function applyEngineBadge() {
+        const e = getEngine(currentEngine);
+        if (!e) return;
+        engineBadge.textContent = e.badge;
+        engineBadge.style.background = e.color;
+      }
+      function selectEngine(name, notify) {
+        currentEngine = name;
+        store.set(ENGINE_KEY, name);
+        applyEngineBadge(); renderMenu(); renderEngineEditor(); closeMenu(); hideSuggest();
+        if (notify) showToast('已使用：' + name);
+      }
+      function openMenu() { engineMenu.classList.remove('hidden'); }
+      function closeMenu() { engineMenu.classList.add('hidden'); }
+      function toggleMenu() { engineMenu.classList.contains('hidden') ? openMenu() : closeMenu(); }
+
+      // 设置面板里的引擎编辑器
+      function renderEngineEditor() {
+        engineEditor.innerHTML = ENGINES.map((e, i) => `
+          <div class="engine-set-row${e.name === currentEngine ? ' active' : ''}" data-i="${i}">
+            <span class="engine-set-badge" style="background:${e.color}">${e.badge}</span>
+            <span class="engine-set-name">${escapeHtml(e.name)}</span>
+            ${e.name === currentEngine ? '<span class="cur">当前</span>' : ''}
+            <button type="button" class="dock-edit-btn" data-act="del" data-i="${i}" title="删除">✕</button>
+          </div>`).join('');
+        engineEditor.querySelectorAll('.engine-set-row').forEach((row) => {
+          // 单击 = 设为当前；双击 = 编辑（用计时器区分）
+          row.addEventListener('click', (e) => {
+            if (e.target.closest('.dock-edit-btn')) return;
+            const i = +row.dataset.i;
+            if (row._dbl) { row._dbl = false; clearTimeout(row._t); return; }
+            row._t = setTimeout(() => { row._dbl = false; selectEngine(ENGINES[i].name, true); }, 250);
+          });
+          row.addEventListener('dblclick', (e) => {
+            if (e.target.closest('.dock-edit-btn')) return;
+            const i = +row.dataset.i;
+            row._dbl = true; clearTimeout(row._t);
+            editEngine(i);
+          });
+        });
+        engineEditor.querySelectorAll('.dock-edit-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const i = +btn.dataset.i, act = btn.dataset.act;
+            if (act === 'del') deleteEngine(i);
+          });
+        });
+      }
+      // 删除引擎：内置删进隐藏列表；自定义直接移除。删除当前引擎时切到默认。
+      function deleteEngine(i) {
+        const eng = ENGINES[i];
+        if (!eng) return;
+        const isBuiltin = BUILTIN_ENGINES.some(b => b.id === eng.id);
+        if (isBuiltin) {
+          if (!hiddenBuiltins.includes(eng.id)) hiddenBuiltins.push(eng.id);
+          saveHiddenEngines();
+        } else {
+          userEngines = userEngines.filter(u => u.id !== eng.id);
+          saveUserEngines();
+        }
+        if (currentEngine === eng.name) currentEngine = null;
+        rebuildEngines();
+        showToast('已删除：' + eng.name);
+      }
+      function saveHiddenEngines() { store.set(HIDDEN_KEY, JSON.stringify(hiddenBuiltins)); }
+      // 编辑引擎（用 prompt 序列；名称/URL 可改，颜色随机不询问）
+      function editEngine(i) {
+        const e = ENGINES[i];
+        if (!e) return;
+        const name = prompt('引擎名称：', e.name); if (name === null) return;
+        const url = prompt('搜索地址（可直接输入首页，如 https://www.baidu.com）：', e.url); if (url === null) return;
+        const badge = prompt('徽标文字（1-3 字符）') || e.badge;
+        const updated = { ...e, name: name.trim() || e.name, url: normalizeSearchUrl(url), badge: badge.trim() || e.badge };
+        const isBuiltin = BUILTIN_ENGINES.some(b => b.id === e.id);
+        if (isBuiltin) {
+          const bi = BUILTIN_ENGINES.find(b => b.id === e.id);
+          Object.assign(bi, updated);
+          const ov = userEngines.find(u => u.id === e.id);
+          if (ov) Object.assign(ov, updated); else userEngines.push(updated);
+          saveUserEngines();
+        } else {
+          userEngines = userEngines.map(u => u.id === e.id ? updated : u);
+          saveUserEngines();
+        }
+        rebuildEngines();
+      }
+      // 添加自定义搜索引擎（颜色随机、用户不可选）
+      function addEngine() {
+        const name = prompt('引擎名称：'); if (!name) return;
+        const url = prompt('搜索地址（可直接输入首页，如 https://www.baidu.com）：'); if (!url) return;
+        const badge = prompt('徽标文字（1-3 字符）') || name.slice(0, 1);
+        const color = ENGINE_COLORS[Math.floor(Math.random() * ENGINE_COLORS.length)];
+        userEngines.push({ id: 'c' + Date.now(), name: name.trim(), url: normalizeSearchUrl(url), badge: badge.trim() || name.slice(0, 1), color });
+        saveUserEngines();
+        rebuildEngines();
+        selectEngine(name.trim(), true);
+      }
+      // 重建 ENGINES（内置未删 + 自定义），重新编号 key
+      function rebuildEngines() {
+        ENGINES.length = 0;
+        ENGINES.push(...effectiveEngines());
+        if (!ENGINES.some(e => e.name === currentEngine)) currentEngine = DEFAULT_ENGINE;
+        store.set(ENGINE_KEY, currentEngine);
+        applyEngineBadge(); renderMenu(); renderEngineEditor();
+      }
+
+      applyEngineBadge(); renderMenu(); renderEngineEditor();
+      engineBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(); closeSettings(); hideSuggest(); });
+      engineMenu.addEventListener('click', (e) => e.stopPropagation());
+      engineAdd.addEventListener('click', (e) => { e.stopPropagation(); addEngine(); });
+
+      /* ============================================================
+         6. 设置面板开关
+         ============================================================ */
+      const settingsBtn = $('settingsBtn'), settingsPanel = $('settingsPanel');
+      function openSettings() { settingsPanel.classList.remove('hidden'); }
+      function closeSettings() { settingsPanel.classList.add('hidden'); }
+      function toggleSettings() { settingsPanel.classList.contains('hidden') ? openSettings() : closeSettings(); }
+      settingsBtn.addEventListener('click', (e) => { e.stopPropagation(); closeMenu(); toggleSettings(); hideSuggest(); });
+      settingsPanel.addEventListener('click', (e) => e.stopPropagation());
+      document.querySelectorAll('.acc-head').forEach((head) => {
+        head.addEventListener('click', () => head.closest('.acc').classList.toggle('open'));
+      });
+
+      /* ============================================================
+         7. 搜索提交（按当前引擎跳转） + 联想（JSONP 跟随当前引擎）
+         ============================================================ */
+      const searchForm = $('searchForm'), searchInput = $('searchInput'), suggestMenu = $('suggestMenu');
+
+      // 各引擎联想接口（JSONP）。未配置/不可用则回退到百度
+      const SUGGEST_SOURCES = {
+        '谷歌': { url: (q, cb) => `https://suggestqueries.google.com/complete/search?client=firefox&hl=zh-CN&q=${encodeURIComponent(q)}&callback=${cb}`, parse: (d) => (Array.isArray(d) && Array.isArray(d[1])) ? d[1] : [] },
+        '百度': { url: (q, cb) => `https://suggestion.baidu.com/su?wd=${encodeURIComponent(q)}&cb=${cb}`, parse: (d) => (d && Array.isArray(d.s)) ? d.s : [] },
+        '必应': { url: (q, cb) => `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(q)}&JsonpCallback=${cb}`, parse: (d) => Array.isArray(d) ? (Array.isArray(d[1]) ? d[1] : d.filter(x => typeof x === 'string')) : (d && Array.isArray(d.s) ? d.s : []) },
+        '360搜索': { url: (q, cb) => `https://suggestion.so.com/sug?wd=${encodeURIComponent(q)}&cb=${cb}`, parse: (d) => Array.isArray(d) ? d : ((d && Array.isArray(d.result)) ? d.result : []) },
+      };
+      // 必应自身 JSONP 已失效，回退到百度源
+      const ENGINE_SUGGEST_SOURCE = { '谷歌': '谷歌', '百度': '百度', '必应': '百度', '360搜索': '360搜索', 'Yandex': '百度', '搜狗': '百度' };
+
+      let suggestList = [], suggestIndex = -1, suggestOpen = false, suggSeq = 0, suggTimer = null, suggScript = null, suggCb = null;
+
+      function cleanupSuggest() {
+        if (suggScript) { suggScript.remove(); suggScript = null; }
+        if (suggCb) { try { delete window[suggCb]; } catch (_) {} suggCb = null; }
+        clearTimeout(suggTimer);
+      }
+      function fetchSuggest(q) {
+        const cfg = SUGGEST_SOURCES[ENGINE_SUGGEST_SOURCE[getEngine(currentEngine).name] || '百度'];
+        cleanupSuggest();
+        if (!cfg) { hideSuggest(); return; }
+        suggCb = '__zzSugg' + (++suggSeq);
+        window[suggCb] = (data) => { cleanupSuggest(); showSuggest((cfg.parse(data) || []).slice(0, 8).map(String)); };
+        suggScript = document.createElement('script');
+        suggScript.async = true;
+        suggScript.src = cfg.url(q, suggCb);
+        suggScript.onerror = () => { cleanupSuggest(); hideSuggest(); };
+        suggTimer = setTimeout(() => { cleanupSuggest(); hideSuggest(); }, 3500);
+        document.head.appendChild(suggScript);
+      }
+      function showSuggest(list) {
+        if (!list.length) { hideSuggest(); return; }
+        suggestList = list; suggestIndex = -1;
+        suggestMenu.innerHTML = '';
+        list.forEach((s, i) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'suggest-item';
+          b.textContent = s;                                 // 用文本节点，避免内容注入
+          b.addEventListener('mousedown', (e) => { e.preventDefault(); searchSuggestion(i); });
+          suggestMenu.appendChild(b);
+        });
+        suggestMenu.classList.remove('hidden');
+        suggestOpen = true;
+        closeMenu();
+      }
+      function hideSuggest() { suggestMenu.classList.add('hidden'); suggestOpen = false; suggestIndex = -1; }
+      function moveSuggest(dir) {
+        const items = suggestMenu.querySelectorAll('.suggest-item');
+        if (!items.length) return;
+        suggestIndex = (suggestIndex + dir + items.length) % items.length;
+        items.forEach((el, i) => el.classList.toggle('active', i === suggestIndex));
+        items[suggestIndex].scrollIntoView({ block: 'nearest' });
+      }
+      function searchSuggestion(i) {
+        const s = suggestList[i];
+        if (!s) return;
+        searchInput.value = s;
+        hideSuggest();
+        window.location.href = buildSearchUrl(getEngine(currentEngine), s);
+      }
+
+      searchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const q = searchInput.value.trim();
+        if (!q) return;
+        window.location.href = buildSearchUrl(getEngine(currentEngine), q);
+      });
+
+      let suggestDebounce;                     // 输入防抖联想
+      searchInput.addEventListener('input', () => {
+        clearTimeout(suggestDebounce);
+        const q = searchInput.value.trim();
+        if (!q) { hideSuggest(); return; }
+        suggestDebounce = setTimeout(() => fetchSuggest(q), 200);
+      });
+
+      searchInput.addEventListener('keydown', (e) => {   // 上下键选择，回车搜索高亮项
+        if (!suggestOpen) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); moveSuggest(1); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); moveSuggest(-1); }
+        else if (e.key === 'Enter' && suggestIndex >= 0) { e.preventDefault(); searchSuggestion(suggestIndex); }
+      });
+
+      /* ============================================================
+         8. 底部图标坞（可自定义内容与顺序，localStorage 持久化）
+         ============================================================ */
+      const DEFAULT_DOCK_SITES = [
+        { name: '翻译',    icon: 'fa-solid fa-language',    color: '#4285F4', url: 'translate.html' },
+        { name: 'B站',     icon: 'fa-brands fa-bilibili',   color: '#FB7299', url: 'https://www.bilibili.com' },
+        { name: '抖音',    icon: 'fa-brands fa-tiktok',     color: '#000000', url: 'https://www.douyin.com' },
+        { name: '小红书',  icon: 'fa-solid fa-book-open',   color: '#FF2442', url: 'https://www.xiaohongshu.com' },
+        { name: '腾讯视频', icon: 'fa-solid fa-tv',         color: '#FF8300', url: 'https://v.qq.com' },
+        { name: 'DeepSeek', icon: 'fa-solid fa-robot',      color: '#4D6BFE', url: 'https://chat.deepseek.com' },
+        // 以下站点默认隐藏（hidden:true），可在设置里单独打开
+        { name: 'GitHub',  icon: 'fa-brands fa-github',     color: '#181717', url: 'https://github.com', hidden: true },
+        { name: '推特',    icon: 'fa-brands fa-x-twitter',  color: '#000000', url: 'https://x.com', hidden: true },
+        { name: 'Gemini',  icon: 'lucide:sparkles',           color: '#4285F4', url: 'https://gemini.google.com', hidden: true },
+        { name: '油管',    icon: 'fa-brands fa-youtube',    color: '#FF0000', url: 'https://www.youtube.com', hidden: true },
+        { name: '谷歌邮箱', icon: 'fa-regular fa-envelope',  color: '#EA4335', url: 'https://mail.google.com', hidden: true },
+      ];
+      const DOCK_KEY = 'zz-dock';
+      const dock = $('dock'), dockEditor = $('dockEditor'), dockAdd = $('dockAdd');
+      let dockSites;
+      // 有存过就尊重（含顺序/隐藏状态）；从未设置才用默认。
+      const hasDock = (() => { try { return localStorage.getItem(DOCK_KEY) !== null; } catch (_) { return false; } })();
+      if (!hasDock) {
+        dockSites = DEFAULT_DOCK_SITES.map(x => ({ ...x }));
+      } else {
+        try {
+          const saved = JSON.parse(store.get(DOCK_KEY, '[]'));
+          dockSites = Array.isArray(saved) ? saved : [];
+        } catch (_) { dockSites = DEFAULT_DOCK_SITES.map(x => ({ ...x })); }
+      }
+
+      // 新建站点可随机分配的 Lucide 图标名
+      const LUCIDE_NAMES = ['globe','link','mail','message-circle','star','code','play','music','camera','map','calendar','heart','cloud','book','zap','send','rss','tv','gamepad-2','package','terminal','coffee','pencil','folder'];
+      // 站点图标渲染：lucide:xx → data-lucide；否则当 FA 类名
+      function iconHtml(s) {
+        if (typeof s.icon === 'string' && s.icon.indexOf('lucide:') === 0) {
+          return '<i data-lucide="' + escapeHtml(s.icon.slice(7)) + '"></i>';
+        }
+        return '<i class="' + escapeHtml(s.icon) + '"></i>';
+      }
+
+      function renderDock() {
+        dock.innerHTML = dockSites
+          .filter(s => !s.hidden)
+          .map(s => `
+          <a class="group flex w-14 flex-col items-center gap-1.5" href="${escapeHtml(s.url)}" target="_blank" rel="noopener" title="${escapeHtml(s.name)}">
+            <span class="icon-tile grid h-[52px] w-[52px] place-items-center rounded-2xl" style="color:${escapeHtml(s.color)}">${iconHtml(s)}</span>
+            <span class="dock-label text-[11px] text-white/60">${escapeHtml(s.name)}</span>
+          </a>`).join('');
+        // 全部隐藏时整条也隐藏
+        dock.classList.toggle('hidden', dockSites.filter(s => !s.hidden).length === 0);
+        if (window.lucide) window.lucide.createIcons();
+      }
+      function saveDock() { store.set(DOCK_KEY, JSON.stringify(dockSites)); }
+
+      function renderDockEditor() {
+        const EYE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
+        const EYE_OFF = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
+        dockEditor.innerHTML = dockSites.map((s, i) => `
+          <div class="dock-edit-row${s.hidden ? ' hid' : ''}" data-i="${i}">
+            <button type="button" class="dock-edit-btn" data-act="up" data-i="${i}" title="上移" ${i === 0 ? 'disabled' : ''}>↑</button>
+            <button type="button" class="dock-edit-btn" data-act="down" data-i="${i}" title="下移" ${i === dockSites.length - 1 ? 'disabled' : ''}>↓</button>
+            <span class="dock-edit-icon" style="background:${escapeHtml(s.color)};color:#fff">${iconHtml(s)}</span>
+            <span class="dock-edit-name">${escapeHtml(s.name)}</span>
+            <button type="button" class="dock-edit-btn hidebtn${s.hidden ? ' on' : ''}" data-act="hide" data-i="${i}" title="${s.hidden ? '取消隐藏' : '隐藏'}">${s.hidden ? EYE_OFF : EYE}</button>
+            <button type="button" class="dock-edit-btn" data-act="del" data-i="${i}" title="删除">✕</button>
+          </div>`).join('');
+        dockEditor.querySelectorAll('.dock-edit-row').forEach((row) => {
+          // 单击整行（非按钮区）→ 编辑
+          row.addEventListener('click', (e) => {
+            if (e.target.closest('.dock-edit-btn')) return;
+            editDockSite(+row.dataset.i);
+          });
+        });
+        dockEditor.querySelectorAll('.dock-edit-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const i = +btn.dataset.i, act = btn.dataset.act;
+            if (act === 'up') swapDock(i, i - 1);
+            else if (act === 'down') swapDock(i, i + 1);
+            else if (act === 'del') delDockSite(i);
+            else if (act === 'hide') toggleSiteHidden(i);
+          });
+        });
+        if (window.lucide) window.lucide.createIcons();
+      }
+      function swapDock(a, b) {
+        if (b < 0 || b >= dockSites.length) return;
+        [dockSites[a], dockSites[b]] = [dockSites[b], dockSites[a]];
+        saveDock(); renderDock(); renderDockEditor();
+      }
+      function delDockSite(i) { dockSites.splice(i, 1); saveDock(); renderDock(); renderDockEditor(); }
+      function toggleSiteHidden(i) {
+        dockSites[i].hidden = !dockSites[i].hidden;
+        saveDock(); renderDock(); renderDockEditor();
+      }
+      const RANDOM_COLORS = ['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6','#6366F1','#F97316','#64748B'];
+      function editDockSite(i) {
+        const s = dockSites[i];
+        const name = prompt('站点名称：', s.name); if (name === null) return;
+        const url = prompt('网址：', s.url); if (url === null) return;
+        // 图标不再由用户编辑，保留原样
+        dockSites[i] = { ...s, name: name.trim() || s.name, url: url.trim() || s.url };
+        saveDock(); renderDock(); renderDockEditor();
+      }
+      function addDockSite() {
+        const name = prompt('站点名称：'); if (!name) return;
+        const url = prompt('网址：'); if (!url) return;
+        // 从 Lucide 随机分配图标 + 随机颜色（用户不可设）
+        const icon = 'lucide:' + LUCIDE_NAMES[Math.floor(Math.random() * LUCIDE_NAMES.length)];
+        const color = RANDOM_COLORS[Math.floor(Math.random() * RANDOM_COLORS.length)];
+        dockSites.push({ name: name.trim(), url: url.trim(), icon, color });
+        saveDock(); renderDock(); renderDockEditor();
+      }
+
+      renderDock();
+      renderDockEditor();
+      dockAdd.addEventListener('click', () => addDockSite());
+
+      /* ============================================================
+         9. 全局点击（关闭所有下拉） + 键盘快捷键
+         ============================================================ */
+      document.addEventListener('click', () => { closeMenu(); closeSettings(); hideSuggest(); });
+
+      document.addEventListener('keydown', (e) => {
+        // Alt+1..6 选引擎
+        if (e.altKey && !e.ctrlKey && !e.metaKey && e.key >= '1' && e.key <= '6') {
+          const eng = ENGINES[parseInt(e.key, 10) - 1];
+          if (eng) { e.preventDefault(); selectEngine(eng.name, true); }
+          return;
+        }
+        const typing = document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
+        if (e.key === '/' && !typing) { e.preventDefault(); searchInput.focus(); }
+        else if (e.key === 'Escape') {
+          if (!engineMenu.classList.contains('hidden')) closeMenu();
+          else if (!suggestMenu.classList.contains('hidden')) hideSuggest();
+          else if (typing) searchInput.value = '';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

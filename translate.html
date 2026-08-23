@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>翻译</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --line: #e6e8ec;
+    --text: #1f2430;
+    --muted: #9aa1ad;
+    --accent: #4285f4;
+    --accent-soft: rgba(66,133,244,0.10);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 24px 60px; color: var(--text);
+    background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: 100%; max-width: 880px; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 22px; }
+  .head h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.01em; margin: 0; }
+  .head .badge { font-size: 12px; color: var(--muted); }
+
+  /* 语言选择行 */
+  .langline { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  select {
+    flex: 1; appearance: none; -webkit-appearance: none;
+    padding: 12px 14px; font-size: 14px; color: var(--text);
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    outline: none; cursor: pointer;
+  }
+  select:focus { border-color: var(--accent); }
+  .swap {
+    flex: none; width: 42px; height: 42px; border-radius: 12px;
+    display: grid; place-items: center; border: 1px solid var(--line);
+    background: var(--card); color: var(--muted); cursor: pointer;
+    transition: color .15s ease, transform .2s ease;
+  }
+  .swap:hover { color: var(--accent); transform: rotate(180deg); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 18px 20px; box-shadow: 0 6px 24px rgba(20,30,60,0.04);
+  }
+  textarea {
+    width: 100%; min-height: 150px; resize: vertical; border: 0; outline: none;
+    font: inherit; font-size: 17px; line-height: 1.7; color: var(--text);
+    background: transparent; padding: 4px;
+  }
+  textarea::placeholder { color: var(--muted); }
+
+  .actions { display: flex; align-items: center; justify-content: space-between; margin: 10px 4px 0; gap: 8px; }
+  .actions .spacer { flex: 1; }
+  .counter { font-size: 12px; color: var(--muted); }
+  .primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: none;
+    padding: 10px 24px; border: 0; border-radius: 10px; cursor: pointer;
+    background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; line-height: 1;
+    transition: background .15s ease, transform .12s ease, box-shadow .15s ease;
+  }
+  .primary:hover { background: #3367d6; box-shadow: 0 4px 14px rgba(66,133,244,0.30); }
+  .primary:active { transform: scale(0.97); }
+  .primary .ico { display: block; flex: none; }
+  .clear {
+    border: 0; background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 12px; padding: 6px 10px; border-radius: 8px;
+  }
+  .clear:hover { color: var(--text); background: var(--accent-soft); }
+
+  .result {
+    position: relative; margin-top: 16px; min-height: 110px;
+    padding: 18px 56px 18px 18px; border-radius: 14px;
+    background: #fafbfc; border: 1px solid var(--line);
+    font-size: 17px; line-height: 1.8; white-space: pre-wrap; word-break: break-word;
+    color: var(--text);
+  }
+  .result .hint { color: var(--muted); font-size: 15px; }
+  .result .err { color: #d93025; font-size: 14px; }
+  .result .meta { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .copybtn {
+    position: absolute; top: 12px; right: 12px;
+    width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--card); color: var(--muted); cursor: pointer;
+    display: grid; place-items: center; transition: color .15s ease;
+  }
+  .copybtn:hover { color: var(--accent); }
+
+  .loading { display: none; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--line); border-top-color: var(--accent);
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 历史记录 */
+  .hist { margin-top: 24px; }
+  .hist-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 10px; }
+  .hist-head h2 { font-size: 15px; font-weight: 700; margin: 0; color: var(--text); }
+  .hist-clear {
+    border: 0; background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 12px; padding: 6px 10px; border-radius: 8px;
+  }
+  .hist-clear:hover { color: #d93025; background: rgba(217,48,37,0.08); }
+  .hist-list { display: flex; flex-direction: column; gap: 8px; }
+  .hist-empty { color: var(--muted); font-size: 13px; padding: 18px 4px; text-align: center; }
+  .hist-item {
+    position: relative; display: block; width: 100%; text-align: left;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 52px 12px 16px; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .hist-item:hover { border-color: var(--accent); box-shadow: 0 2px 10px rgba(66,133,244,0.08); }
+  .hist-src {
+    font-size: 14px; color: var(--text); overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .hist-dst {
+    font-size: 13px; color: #4b5563; margin-top: 4px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .hist-info {
+    font-size: 11px; color: var(--muted); margin-top: 6px;
+  }
+  .hist-del {
+    position: absolute; top: 10px; right: 10px;
+    width: 30px; height: 30px; border-radius: 8px; border: 0;
+    background: transparent; color: var(--muted); cursor: pointer;
+    display: grid; place-items: center; transition: color .15s ease, background .15s ease;
+  }
+  .hist-del:hover { color: #d93025; background: rgba(217,48,37,0.08); }
+
+  /* 头部右侧：引擎徽标 + 设置 */
+  .head-right { display: flex; align-items: center; gap: 10px; }
+  .badge-btn {
+    border: 1px solid var(--line); background: var(--card); color: var(--muted);
+    font-size: 12px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .badge-btn.ai { color: var(--accent); border-color: var(--accent); }
+  .badge-btn.tencent { color: #4472c4; border-color: #4472c4; }
+  .gearbtn {
+    width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+    border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .gearbtn:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* 接口设置面板 */
+  .panel {
+    margin: 0 0 18px; padding: 16px 18px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(20,30,60,0.04);
+  }
+  .panel-title { font-size: 13px; font-weight: 700; margin: 0 0 14px; color: var(--text); }
+  .seg { display: flex; gap: 8px; margin-bottom: 16px; }
+  .seg-btn {
+    flex: 1; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600;
+    border: 1px solid var(--line); background: var(--card); color: var(--muted);
+    transition: all .15s ease;
+  }
+  .seg-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .field label { font-size: 12px; color: var(--muted); }
+  .field input {
+    padding: 10px 12px; font-size: 13px; color: var(--text);
+    background: #fafbfc; border: 1px solid var(--line); border-radius: 10px; outline: none;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .save-bar { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+  .save {
+    padding: 9px 22px; border: 0; border-radius: 10px; cursor: pointer;
+    background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
+    transition: background .15s ease;
+  }
+  .save:hover { background: #3367d6; }
+  .ghost {
+    padding: 9px 18px; border: 1px solid var(--line); background: var(--card);
+    color: var(--muted); font-size: 13px; font-weight: 600; border-radius: 10px; cursor: pointer;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .ghost:hover { color: var(--text); border-color: var(--accent); }
+  .api-status { font-size: 12px; color: var(--muted); }
+  .api-status.ok { color: #1a7f37; }
+  .api-status.err { color: #d93025; }
+  .soft { color: var(--muted); font-size: 12px; line-height: 1.6; }
+  .hidden { display: none !important; }
+
+  /* 模型列表 & 编辑器 */
+  .listlabel { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .listlabel .addbtn {
+    border: 1px solid var(--line); background: var(--card); color: var(--accent);
+    font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; cursor: pointer;
+    transition: border-color .15s ease;
+  }
+  .listlabel .addbtn:hover { border-color: var(--accent); }
+  .model-list { display: flex; flex-direction: column; gap: 6px; }
+  .model-empty { color: var(--muted); font-size: 12px; padding: 10px 4px; }
+  .model-item {
+    display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: #fafbfc; cursor: pointer; transition: border-color .15s ease;
+  }
+  .model-item:hover { border-color: var(--accent); }
+  .model-item.active { border-color: var(--accent); background: var(--accent-soft); }
+  .model-name { flex: 1; font-size: 13px; color: var(--text); font-weight: 600; }
+  .model-sub { font-size: 11px; color: var(--muted); }
+  .model-act { display: flex; gap: 4px; flex: none; }
+  .model-act button {
+    width: 26px; height: 26px; border-radius: 7px; border: 0; background: transparent;
+    color: var(--muted); cursor: pointer; display: grid; place-items: center; transition: color .15s ease, background .15s ease;
+  }
+  .model-act button:hover { color: var(--accent); background: rgba(0,0,0,0.05); }
+  .model-act button.del:hover { color: #d93025; background: rgba(217,48,37,0.08); }
+  .editor { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <h1>翻译</h1>
+      <div class="head-right">
+        <button id="engineBadge" class="badge-btn">Google</button>
+        <button id="apiBtn" class="gearbtn" title="接口设置">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 接口设置面板（默认隐藏） -->
+    <div id="apiPanel" class="panel hidden">
+      <p class="panel-title">翻译引擎</p>
+      <div class="seg">
+        <button type="button" class="seg-btn active" data-engine="google">Google 免费</button>
+        <button type="button" class="seg-btn" data-engine="tencent">腾讯</button>
+        <button type="button" class="seg-btn" data-engine="ai">AI 大模型</button>
+      </div>
+      <!-- 腾讯云 TMT 配置 -->
+      <div id="tmtConfig" class="hidden">
+        <div class="field">
+          <label>SecretId</label>
+          <input id="tmtSecretId" type="text" placeholder="你的 SecretId" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>SecretKey</label>
+          <input id="tmtSecretKey" type="password" placeholder="你的 SecretKey" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>地域（Region）</label>
+          <input id="tmtRegion" type="text" placeholder="ap-guangzhou" autocomplete="off" />
+        </div>
+        <div class="save-bar">
+          <button type="button" class="save" id="saveTmt">保存</button>
+          <span class="api-status" id="tmtStatus"></span>
+        </div>
+        <p class="soft">腾讯云「机器翻译 TMT」的文本翻译接口，需在腾讯云开通并生成 API 密钥。秘钥只存本机浏览器。</p>
+      </div>
+      <div id="aiConfig" class="hidden">
+        <!-- 已保存的模型列表 -->
+        <div class="listlabel">已保存的模型 <button type="button" class="addbtn" id="addModel">＋ 添加</button></div>
+        <div id="modelList" class="model-list"></div>
+        <div class="empty" id="modelEmpty">还没有保存的模型，点「＋ 添加」创建一个。</div>
+
+        <!-- 编辑器（点击列表项/添加时弹出表单）：默认隐藏 -->
+        <div id="modelEditor" class="editor hidden">
+          <div class="field">
+            <label>名称（标记用）</label>
+            <input id="edName" type="text" placeholder="DeepSeek 官方" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>接口地址（OpenAI 兼容，带 /v1）</label>
+            <input id="edBase" type="text" placeholder="https://api.deepseek.com/v1" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>API Key</label>
+            <input id="edKey" type="password" placeholder="sk-..." autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>模型</label>
+            <input id="edModel" type="text" placeholder="deepseek-chat" autocomplete="off" />
+          </div>
+          <div class="save-bar">
+            <button type="button" class="save" id="saveModel">保存</button>
+            <button type="button" class="ghost" id="cancelModel">取消</button>
+            <span class="api-status" id="modelStatus"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="langline">
+      <select id="from" title="源语言"></select>
+      <button id="swap" class="swap" title="交换语言">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+        </svg>
+      </button>
+      <select id="to" title="目标语言"></select>
+    </div>
+
+    <div class="card">
+      <textarea id="input" placeholder="输入文本，点击翻译…" autofocus spellcheck="false"></textarea>
+      <div class="actions">
+        <button class="primary" id="translateBtn">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="10" cy="10" r="7"/><path d="M15.4 15.4 21 21"/></svg>
+          <span>翻译</span>
+        </button>
+        <span class="spacer"></span>
+        <span class="counter" id="counter">0</span>
+        <button class="clear" id="clear">清空</button>
+      </div>
+    </div>
+
+    <div class="loading" id="loading"><span class="spinner"></span>翻译中…</div>
+
+    <div class="result" id="result"><span class="hint">译文会显示在这里</span></div>
+
+    <section class="hist">
+      <div class="hist-head">
+        <h2>历史记录</h2>
+        <button class="hist-clear" id="histClear">清空</button>
+      </div>
+      <div class="hist-list" id="histList"><div class="hist-empty">暂无历史记录</div></div>
+    </section>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var LANGS = [
+    ['zh-CN', '中文'], ['en', '英语'], ['ja', '日语'], ['ko', '韩语'],
+    ['fr', '法语'], ['de', '德语'], ['es', '西班牙语'], ['ru', '俄语']
+  ];
+  var fromEl = $('from'), toEl = $('to');
+  var inputEl = $('input'), resultEl = $('result'), loadingEl = $('loading');
+  var counterEl = $('counter');
+  var histList = $('histList'), histClear = $('histClear');
+  var KEY = 'zz-trans-history';
+
+  var history = loadHistory();
+
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; }
+  }
+  function saveHistory() {
+    try { localStorage.setItem(KEY, JSON.stringify(history)); } catch (e) {}
+  }
+
+  /* ---------- AI 引擎配置（多模型，本地保存） ---------- */
+  var AI_KEY = 'zz-ai-models';       // 模型数组
+  var AI_ACTIVE = 'zz-ai-active';    // 当前选中的模型下标
+  var models = loadModels();
+  var activeIdx = loadActiveIdx();
+  var engine = 'google'; // 'google' | 'ai'
+
+  function loadModels() {
+    try { return JSON.parse(localStorage.getItem(AI_KEY) || '[]'); }
+    catch (e) { return []; }
+  }
+  function saveModels() { try { localStorage.setItem(AI_KEY, JSON.stringify(models)); } catch (e) {} }
+  function loadActiveIdx() {
+    try { var n = parseInt(localStorage.getItem(AI_ACTIVE), 10); return Number.isFinite(n) ? n : -1; }
+    catch (e) { return -1; }
+  }
+  function saveActiveIdx() { try { localStorage.setItem(AI_ACTIVE, String(activeIdx)); } catch (e) {} }
+  function activeModel() { return models[activeIdx] || null; }
+
+  /* ---------- 腾讯云 TMT 配置 ---------- */
+  var TMT_KEY = 'zz-tmt-config';
+  var tmtConfig = loadTmtConfig();
+  function loadTmtConfig() {
+    try { return JSON.parse(localStorage.getItem(TMT_KEY) || '{"secretId":"","secretKey":"","region":"ap-guangzhou"}'); }
+    catch (e) { return { secretId: '', secretKey: '', region: 'ap-guangzhou' }; }
+  }
+  function saveTmtConfig() { try { localStorage.setItem(TMT_KEY, JSON.stringify(tmtConfig)); } catch (e) {} }
+
+  /* 腾讯云 TMT 文本翻译（TC3-HMAC-SHA256 签名，纯 JS 实现） */
+  var TMT_HOST = 'tmt.tencentcloudapi.com';
+  var TMT_ACTION = 'TextTranslate';
+  var TMT_VERSION = '2018-03-21';
+  var TMT_SERVICE = 'tmt';
+  // 请求发往的地址：部署版(VPS 上有 Nginx 代理)走 /zz/api/tmt 中转，file:// 下回退到腾讯直连
+  // 签名 host 始终是 TMT_HOST（腾讯按它校验），只有 HTTP 请求的 URL 换到代理
+  function tmtEndpoint() {
+    if (location.origin && /dreamer\.asia$/.test(location.hostname)) {
+      return location.origin + '/zz/api/tmt';
+    }
+    return 'https://' + TMT_HOST + '/';
+  }
+
+  // ---- 纯 JS SHA-256 / HMAC-SHA256（file:// 下 crypto.subtle 不一定可用） ----
+  var K256 = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  function rotr(x, n) { return (x >>> n) | (x << (32 - n)); }
+  // 输入：字节数组 Uint8Array/Array<number>；输出：32字节数组
+  function sha256Bytes(input) {
+    var bytes = Array.prototype.slice.call(input);
+    var bitLen = bytes.length * 8;
+    bytes.push(0x80);
+    while ((bytes.length % 64) !== 56) bytes.push(0);
+    // 64 位长度，大端（高32位 + 低32位），共 8 字节
+    var hi = Math.floor(bitLen / 4294967296), lo = bitLen >>> 0;
+    bytes.push((hi >>> 24) & 0xff, (hi >>> 16) & 0xff, (hi >>> 8) & 0xff, hi & 0xff);
+    bytes.push((lo >>> 24) & 0xff, (lo >>> 16) & 0xff, (lo >>> 8) & 0xff, lo & 0xff);
+
+    var H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    var W = new Array(64);
+    for (var i = 0; i < bytes.length; i += 64) {
+      for (var t = 0; t < 16; t++) {
+        var j = i + t * 4;
+        W[t] = (bytes[j] << 24) | (bytes[j + 1] << 16) | (bytes[j + 2] << 8) | bytes[j + 3];
+      }
+      for (var t2 = 16; t2 < 64; t2++) {
+        var s0 = rotr(W[t2 - 15], 7) ^ rotr(W[t2 - 15], 18) ^ (W[t2 - 15] >>> 3);
+        var s1 = rotr(W[t2 - 2], 17) ^ rotr(W[t2 - 2], 19) ^ (W[t2 - 2] >>> 10);
+        W[t2] = (W[t2 - 16] + s0 + W[t2 - 7] + s1) >>> 0;
+      }
+      var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+      for (var t3 = 0; t3 < 64; t3++) {
+        var S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+        var ch = (e & f) ^ (~e & g);
+        var temp1 = (h + S1 + ch + K256[t3] + W[t3]) >>> 0;
+        var S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+        var maj = (a & b) ^ (a & c) ^ (b & c);
+        var temp2 = (S0 + maj) >>> 0;
+        h = g; g = f; f = e; e = (d + temp1) >>> 0; d = c; c = b; b = a; a = (temp1 + temp2) >>> 0;
+      }
+      H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
+      H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+    }
+    var out = [];
+    for (var n = 0; n < 8; n++) {
+      var v = H[n] >>> 0;
+      out.push((v >>> 24) & 0xff, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff);
+    }
+    return out;
+  }
+  function utf8Bytes(s) {
+    var bytes = [];
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      if (c < 0x80) bytes.push(c);
+      else if (c < 0x800) { bytes.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f)); }
+      else if (c < 0xd800 || c >= 0xe000) { bytes.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f)); }
+      else { // surrogate pair
+        i++;
+        var c2 = s.charCodeAt(i);
+        var cp = ((c & 0x3ff) << 10) + (c2 & 0x3ff) + 0x10000;
+        bytes.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+      }
+    }
+    return bytes;
+  }
+  function bytesToHex(arr) {
+    return arr.map(function (b) { var v = (b & 0xff).toString(16); return v.length < 2 ? '0' + v : v; }).join('');
+  }
+  function sha256Hex(s) { return bytesToHex(sha256Bytes(utf8Bytes(s))); }
+  // HMAC-SHA256：key 可为字节数组(原始密钥)或字符串；返回 32 字节数组
+  function hmacSha256Bytes(key, msg) {
+    var k = (typeof key === 'string') ? utf8Bytes(key) : Array.prototype.slice.call(key);
+    if (k.length > 64) k = sha256Bytes(k);
+    while (k.length < 64) k.push(0);
+    var ipad = k.map(function (b) { return b ^ 0x36; });
+    var opad = k.map(function (b) { return b ^ 0x5c; });
+    var inner = sha256Bytes(ipad.concat(utf8Bytes(msg)));
+    return sha256Bytes(opad.concat(inner));
+  }
+  // hex 版（纯文本 key 用）
+  function hmacSha256Hex(key, msg) { return bytesToHex(hmacSha256Bytes(key, msg)); }
+
+  function tmtTranslate(q, from, to) {
+    if (!tmtConfig.secretId || !tmtConfig.secretKey) {
+      return Promise.reject(new Error('请先在上方齿轮配置腾讯云 SecretId / SecretKey'));
+    }
+    var region = tmtConfig.region || 'ap-guangzhou';
+    var timestamp = Math.floor(Date.now() / 1000);
+    var date = new Date(timestamp * 1000).toISOString().slice(0, 10);
+
+    var payload = JSON.stringify({ SourceText: q, Source: from, Target: to, ProjectId: 0 });
+    var canonicalHeaders = 'content-type:application/json; charset=utf-8\nhost:' + TMT_HOST + '\n';
+    var signedHeaders = 'content-type;host';
+    var hashedPayload = sha256Hex(payload);
+    var canonicalRequest = 'POST\n/\n\n' + canonicalHeaders + '\n' + signedHeaders + '\n' + hashedPayload;
+    var credentialScope = date + '/' + TMT_SERVICE + '/tc3_request';
+    var stringToSign = 'TC3-HMAC-SHA256\n' + timestamp + '\n' + credentialScope + '\n' + sha256Hex(canonicalRequest);
+    var secretDate = hmacSha256Bytes('TC3' + tmtConfig.secretKey, date);
+    var secretService = hmacSha256Bytes(secretDate, TMT_SERVICE);
+    var secretSigning = hmacSha256Bytes(secretService, 'tc3_request');
+    var signature = bytesToHex(hmacSha256Bytes(secretSigning, stringToSign));
+    var authorization = 'TC3-HMAC-SHA256 Credential=' + tmtConfig.secretId + '/' + credentialScope +
+      ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
+
+    return fetch(tmtEndpoint(), {
+      method: 'POST',
+      headers: {
+        'Authorization': authorization,
+        'Content-Type': 'application/json; charset=utf-8',
+        'Host': TMT_HOST,
+        'X-TC-Action': TMT_ACTION,
+        'X-TC-Version': TMT_VERSION,
+        'X-TC-Timestamp': String(timestamp),
+        'X-TC-Region': region
+      },
+      body: payload
+    })
+      .then(function (r) {
+        if (!r.ok) return r.text().then(function (t) { throw new Error('HTTP ' + r.status + (t ? ' · ' + t.slice(0, 160) : '')); });
+        return r.json();
+      })
+      .then(function (data) {
+        var resp = data && data.Response;
+        if (!resp || !resp.TargetText) throw new Error(resp && resp.Error ? resp.Error.Message : '返回格式异常');
+        return { text: resp.TargetText, detected: resp.Source || from };
+      });
+  }
+
+  // TMT 语言码映射：界面 zh-CN -> TMT zh
+  function mappedTmt(code) {
+    if (code === 'zh-CN') return 'zh';
+    return code;
+  }
+  // TMT 语言检测（LanguageDetect 动作；同一签名）
+  function tmtDetect(q) {
+    if (!tmtConfig.secretId || !tmtConfig.secretKey) {
+      return Promise.reject(new Error('请先在上方齿轮配置腾讯云 SecretId / SecretKey'));
+    }
+    var region = tmtConfig.region || 'ap-guangzhou';
+    var timestamp = Math.floor(Date.now() / 1000);
+    var date = new Date(timestamp * 1000).toISOString().slice(0, 10);
+    var service = TMT_SERVICE;
+    var action = 'LanguageDetect';
+    var payload = JSON.stringify({ Text: q, ProjectId: 0 });
+    var canonicalHeaders = 'content-type:application/json; charset=utf-8\nhost:' + TMT_HOST + '\n';
+    var signedHeaders = 'content-type;host';
+    var hashedPayload = sha256Hex(payload);
+    var canonicalRequest = 'POST\n/\n\n' + canonicalHeaders + '\n' + signedHeaders + '\n' + hashedPayload;
+    var credentialScope = date + '/' + service + '/tc3_request';
+    var stringToSign = 'TC3-HMAC-SHA256\n' + timestamp + '\n' + credentialScope + '\n' + sha256Hex(canonicalRequest);
+    var secretDate = hmacSha256Bytes('TC3' + tmtConfig.secretKey, date);
+    var secretService = hmacSha256Bytes(secretDate, service);
+    var secretSigning = hmacSha256Bytes(secretService, 'tc3_request');
+    var signature = bytesToHex(hmacSha256Bytes(secretSigning, stringToSign));
+    var authorization = 'TC3-HMAC-SHA256 Credential=' + tmtConfig.secretId + '/' + credentialScope +
+      ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
+    return fetch(tmtEndpoint(), {
+      method: 'POST',
+      headers: {
+        'Authorization': authorization,
+        'Content-Type': 'application/json; charset=utf-8',
+        'Host': TMT_HOST,
+        'X-TC-Action': action,
+        'X-TC-Version': TMT_VERSION,
+        'X-TC-Timestamp': String(timestamp),
+        'X-TC-Region': region
+      },
+      body: payload
+    })
+      .then(function (r) {
+        if (!r.ok) return r.text().then(function (t) { throw new Error('HTTP ' + r.status + (t ? ' · ' + t.slice(0, 160) : '')); });
+        return r.json();
+      })
+      .then(function (data) {
+        var resp = data && data.Response;
+        if (!resp || !resp.Lang) throw new Error(resp && resp.Error ? resp.Error.Message : '返回格式异常');
+        return resp.Lang; // 如 'zh' / 'en' / 'ja' ...
+      });
+  }
+
+  /* AI 双向互译提示词：目标自动时中→英、英→中、其余→中文 */
+  function systemPrompt(to) {
+    var toName = langName(to);
+    if (to === 'auto') {
+      return '你是一名专业翻译。请先自动判断输入文本的语言，再翻译：\n' +
+        '· 检测为中文 -> 翻译成英文\n' +
+        '· 检测为英文 -> 翻译成中文（简体）\n' +
+        '· 其他语言 -> 翻译成中文（简体）\n' +
+        '只输出译文本身，不要解释、不要加引号、不要输出“译文：”等前缀，保留原意、语调和换行。';
+    }
+    return '你是一名专业翻译。请判断输入语言，并翻译成' + toName + '。' +
+      '只输出译文本身，不要解释、不要加引号、不要输出前缀，保留原意、语调和换行。';
+  }
+
+  function populate() {
+    var auto = document.createElement('option');
+    auto.value = 'auto'; auto.textContent = '自动检测';
+    fromEl.appendChild(auto);
+    LANGS.forEach(function (l) {
+      var o = document.createElement('option');
+      o.value = l[0]; o.textContent = l[1];
+      fromEl.appendChild(o);
+    });
+    // 目标语言：第一个为“自动”（自动互译：中→英、英→中）
+    var tauto = document.createElement('option');
+    tauto.value = 'auto'; tauto.textContent = '自动（中英互译）';
+    toEl.appendChild(tauto);
+    LANGS.forEach(function (l) {
+      var o = document.createElement('option');
+      o.value = l[0]; o.textContent = l[1];
+      toEl.appendChild(o);
+    });
+    fromEl.value = 'auto';
+    toEl.value = 'auto';
+  }
+
+  var timer = null, seq = 0;
+
+  // 核心请求：按给定 sl/tl 取译文，返回 {text, detected}
+  function doTranslate(q, from, to) {
+    var url = 'https://translate.googleapis.com/translate_a/single?client=gtx'
+      + '&sl=' + encodeURIComponent(from)
+      + '&tl=' + encodeURIComponent(to)
+      + '&dt=t&q=' + encodeURIComponent(q);
+    return fetch(url)
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) {
+        if (!data || !Array.isArray(data[0])) throw new Error('返回格式异常');
+        var text = data[0].map(function (s) { return s && s[0] ? s[0] : ''; }).join('');
+        return { text: text, detected: data[2] };
+      });
+  }
+
+  // AI：OpenAI 兼容 chat/completions，一次请求完成双向互译
+  function aiTranslate(q, from, to) {
+    var cfg = activeModel();
+    if (!cfg || !cfg.base || !cfg.key || !cfg.model) {
+      return Promise.reject(new Error('请先在上方齿轮添加并选择一个模型'));
+    }
+    var url = cfg.base.replace(/\/+$/, '') + '/chat/completions';
+    var body = {
+      model: cfg.model,
+      temperature: 0.2,
+      messages: [
+        { role: 'system', content: systemPrompt(to) },
+        { role: 'user', content: q }
+      ]
+    };
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + cfg.key
+      },
+      body: JSON.stringify(body)
+    })
+      .then(function (r) {
+        if (!r.ok) return r.text().then(function (t) { throw new Error('HTTP ' + r.status + (t ? ' · ' + t.slice(0, 120) : '')); });
+        return r.json();
+      })
+      .then(function (data) {
+        var text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (!text) throw new Error('返回格式异常');
+        return { text: String(text).trim(), detected: guessLang(q) };
+      });
+  }
+
+  // 粗略判断源语言（用于 AI 模式下的“检测为”标签）
+  function guessLang(q) {
+    var cjk = (q.match(/[\u4e00-\u9fff]/g) || []).length;
+    var latin = (q.match(/[A-Za-z]/g) || []).length;
+    if (cjk > latin) return 'zh-CN';
+    return 'en';
+  }
+
+  function translate(fromOverride, toOverride) {
+    var q = inputEl.value.trim();
+    if (!q) { resultEl.innerHTML = '<span class="hint">译文会显示在这里</span>'; return; }
+    var from = fromOverride || fromEl.value;
+    var to = toOverride || toEl.value;
+    var my = ++seq;
+    loadingEl.style.display = 'flex';
+    resultEl.innerHTML = '';
+
+    var showResult = function (text, detected, finalTo) {
+      var langName = '';
+      var hit = LANGS.filter(function (l) { return l[0] === detected; })[0];
+      if (from === 'auto' && detected)
+        langName = ' · 检测为 ' + (hit ? hit[1] : detected);
+      resultEl.innerHTML = escapeHtml(text) + '<div class="meta">' + langName + '</div>';
+
+      // 存入历史（去重：同一 源语言+原文 视为同一条，移到最前）
+      var actualFrom = from === 'auto' ? (detected || 'auto') : from;
+      history = history.filter(function (h) { return !(h.from === actualFrom && h.src === q); });
+      history.unshift({ from: actualFrom, to: finalTo, src: q, dst: text, time: Date.now() });
+      if (history.length > 60) history.length = 60;
+      saveHistory();
+      renderHistory();
+    };
+
+    var finish = function (text, detected, finalTo) {
+      if (my !== seq) return;
+      loadingEl.style.display = 'none';
+      showResult(text, detected, finalTo);
+    };
+    var fail = function (e) {
+      if (my !== seq) return;
+      loadingEl.style.display = 'none';
+      resultEl.innerHTML = '<span class="err">翻译失败：' + escapeHtml(e.message || '网络错误') +
+        '<br><span style="font-size:12px;color:#9aa1ad">可能接口不可达（需联网 / 部分地区需代理），请检查网络或更换接口。</span></span>';
+    };
+
+    // ---- AI 模式：一次请求，模型自行判断源语言并双向互译 ----
+    if (engine === 'ai') {
+      aiTranslate(q, from, to)
+        .then(function (res) {
+          if (my !== seq) return;
+          loadingEl.style.display = 'none';
+          var finalTo = to === 'auto' ? (res.detected === 'zh-CN' ? 'en' : 'zh-CN') : to;
+          showResult(res.text, res.detected, finalTo);
+        })
+        .catch(function (e) {
+          if (my !== seq) return;
+          loadingEl.style.display = 'none';
+          resultEl.innerHTML = '<span class="err">翻译失败：' + escapeHtml(e.message || '网络错误') +
+            '<br><span style="font-size:12px;color:#9aa1ad">AI 模式请先点右上角齿轮配置接口地址 / Key / 模型。</span></span>';
+        });
+      return;
+    }
+
+    // ---- 腾讯云 TMT 模式：自动时先检测再互译 ----
+    if (engine === 'tencent') {
+      var tmtRun = function (sl, tl) {
+        return tmtTranslate(q, sl, tl).then(function (res) {
+          if (my !== seq) return;
+          loadingEl.style.display = 'none';
+          showResult(res.text, res.detected, tl);
+        }).catch(fail);
+      };
+      if (to === 'auto') {
+        tmtDetect(q).then(function (det) {
+          if (my !== seq) return;
+          var finalTo = det === 'zh' ? 'en' : 'zh';
+          tmtRun(mappedTmt(det), finalTo);
+        }).catch(fail);
+      } else {
+        var tl = mappedTmt(to);
+        if (from === 'auto') {
+          // 源自动但目标具体：先检测源语言，再翻译
+          tmtDetect(q).then(function (det) {
+            if (my !== seq) return;
+            tmtRun(mappedTmt(det), tl);
+          }).catch(fail);
+        } else {
+          tmtRun(mappedTmt(from), tl);
+        }
+      }
+      return;
+    }
+
+    // ---- Google 模式 ----
+    // 目标为“自动”：先检测源，再按互译规则决定目标
+    if (to === 'auto') {
+      // 第一步：用 tl=zh-CN 探测源语言
+      doTranslate(q, 'auto', 'zh-CN')
+        .then(function (res) {
+          var det = res.detected;
+          var finalTo;
+          if (det === 'zh-CN') finalTo = 'en';       // 中文 → 英文
+          else if (det === 'en') finalTo = 'zh-CN';  // 英文 → 中文
+          else finalTo = 'zh-CN';                    // 其他 → 中文
+          if (finalTo === 'zh-CN' && det === 'zh-CN') {
+            // 探测用的目标恰好是最终目标（中文→中文不需要），仍是中文→英文
+            // 上面已判定 finalTo='en'，不会走到这；此处兜底
+            finalTo = 'en';
+          }
+          if (finalTo === 'zh-CN') {
+            // 可复用第一次结果（源非中文，目标都是中文）
+            finish(res.text, det, finalTo);
+          } else {
+            // 需要按最终目标再请求一次
+            doTranslate(q, det || 'auto', finalTo)
+              .then(function (r2) { finish(r2.text, r2.detected || det, finalTo); })
+              .catch(fail);
+          }
+        })
+        .catch(fail);
+    } else {
+      doTranslate(q, from, to)
+        .then(function (res) { finish(res.text, res.detected, to); })
+        .catch(fail);
+    }
+  }
+
+  function langName(code) {
+    if (code === 'auto') return '自动';
+    var hit = LANGS.filter(function (l) { return l[0] === code; })[0];
+    return hit ? hit[1] : code;
+  }
+  function fmtTime(t) {
+    var d = new Date(t);
+    var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+    return pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function renderHistory() {
+    if (!history.length) {
+      histList.innerHTML = '<div class="hist-empty">暂无历史记录</div>';
+      return;
+    }
+    histList.innerHTML = '';
+    history.forEach(function (h, idx) {
+      var item = document.createElement('div');
+      item.className = 'hist-item';
+
+      var src = document.createElement('div');
+      src.className = 'hist-src'; src.textContent = h.src;
+      var dst = document.createElement('div');
+      dst.className = 'hist-dst'; dst.textContent = h.dst;
+      var info = document.createElement('div');
+      info.className = 'hist-info';
+      info.textContent = langName(h.from) + ' → ' + langName(h.to) + ' · ' + fmtTime(h.time);
+
+      var del = document.createElement('button');
+      del.className = 'hist-del'; del.title = '删除';
+      del.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>';
+      del.addEventListener('click', function (e) {
+        e.stopPropagation();
+        history.splice(idx, 1);
+        saveHistory();
+        renderHistory();
+      });
+
+      item.appendChild(src); item.appendChild(dst); item.appendChild(info);
+
+      var redo = document.createElement('button');
+      redo.className = 'hist-del'; redo.title = '重新翻译'; redo.style.right = '46px';
+      redo.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';
+      redo.addEventListener('click', function (e) {
+        e.stopPropagation();
+        loadHistoryItem(h, true);
+      });
+
+      item.appendChild(redo);
+      item.appendChild(del);
+      item.addEventListener('click', function () { loadHistoryItem(h, false); });
+      histList.appendChild(item);
+    });
+  }
+
+  // 回填历史条目：reTranslate=true 时重新请求网络，否则直接用已存译文
+  function loadHistoryItem(h, reTranslate) {
+    inputEl.value = h.src;
+    counterEl.textContent = h.src.length;
+    fromEl.value = h.from === 'auto' ? 'auto' : h.from;
+    toEl.value = h.to;
+    if (reTranslate) {
+      translate();
+    } else {
+      // 直接显示已保存的译文，不再请求网络
+      var hit = LANGS.filter(function (l) { return l[0] === h.from; })[0];
+      var langName = (fromEl.value === 'auto' && h.from) ? ' · 检测为 ' + (hit ? hit[1] : h.from) : '';
+      resultEl.innerHTML = escapeHtml(h.dst) + '<div class="meta">' + langName + '</div>';
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  inputEl.addEventListener('input', function () {
+    counterEl.textContent = inputEl.value.length;
+  });
+  inputEl.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { clearTimeout(timer); translate(); }
+  });
+  $('translateBtn').addEventListener('click', function () {
+    clearTimeout(timer);
+    if (!inputEl.value.trim()) { inputEl.focus(); return; }
+    translate();
+  });
+  fromEl.addEventListener('change', translate);
+  toEl.addEventListener('change', translate);
+
+  $('swap').addEventListener('click', function () {
+    if (fromEl.value === 'auto' && toEl.value === 'auto') { translate(); return; }
+    if (toEl.value === 'auto') { fromEl.value = 'zh-CN'; toEl.value = 'en'; }  // 目标自动时：视作 中↔英
+    else if (fromEl.value === 'auto') { fromEl.value = toEl.value; toEl.value = 'zh-CN'; }
+    else { var t = fromEl.value; fromEl.value = toEl.value; toEl.value = t; }
+    translate();
+  });
+
+  $('clear').addEventListener('click', function () {
+    inputEl.value = ''; counterEl.textContent = '0';
+    resultEl.innerHTML = '<span class="hint">译文会显示在这里</span>';
+    inputEl.focus();
+  });
+
+  histClear.addEventListener('click', function () {
+    history = []; saveHistory(); renderHistory();
+  });
+
+  // 复制按钮
+  var copy = document.createElement('button');
+  copy.className = 'copybtn'; copy.title = '复制译文';
+  copy.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+  copy.addEventListener('click', function () {
+    var text = resultEl.innerText.replace(/\s*·\s*检测为.*$/m, '').replace(/\s*$/, '');
+    if (!text || text === '译文会显示在这里') return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copy.style.color = '#1a7f37';
+        setTimeout(function () { copy.style.color = ''; }, 1200);
+      });
+    }
+  });
+  resultEl.appendChild(copy);
+
+  // ---- 引擎 / 模型设置 ----
+  var engineBadge = $('engineBadge'), apiPanel = $('apiPanel'), aiConfigEl = $('aiConfig'), tmtConfigEl = $('tmtConfig');
+  var segBtns = document.querySelectorAll('.seg-btn');
+  var modelList = $('modelList'), modelEmpty = $('modelEmpty'), modelEditor = $('modelEditor');
+  var edName = $('edName'), edBase = $('edBase'), edKey = $('edKey'), edModel = $('edModel'), modelStatus = $('modelStatus');
+  var editingIdx = -1; // -1 表示新建
+
+  function renderEngineBadge() {
+    engineBadge.textContent = engine === 'ai' ? 'AI 大模型' : (engine === 'tencent' ? '腾讯' : 'Google');
+    engineBadge.classList.toggle('ai', engine === 'ai');
+    engineBadge.classList.toggle('tencent', engine === 'tencent');
+  }
+  function setEngine(e) {
+    engine = e;
+    try { localStorage.setItem('zz-trans-engine', e); } catch (err) {}
+    segBtns.forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-engine') === e);
+    });
+    aiConfigEl.classList.toggle('hidden', e !== 'ai');
+    tmtConfigEl.classList.toggle('hidden', e !== 'tencent');
+    renderEngineBadge();
+  }
+
+  // 渲染已保存模型列表
+  function renderModels() {
+    modelList.innerHTML = '';
+    modelEmpty.classList.toggle('hidden', models.length > 0);
+    models.forEach(function (m, i) {
+      var item = document.createElement('div');
+      item.className = 'model-item' + (i === activeIdx ? ' active' : '');
+
+      var info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;';
+      var name = document.createElement('div');
+      name.className = 'model-name'; name.textContent = m.name || '未命名模型';
+      var sub = document.createElement('div');
+      sub.className = 'model-sub'; sub.textContent = m.model + (i === activeIdx ? ' · 当前使用' : '');
+      info.appendChild(name); info.appendChild(sub);
+
+      var act = document.createElement('div');
+      act.className = 'model-act';
+      var useBtn = mBtn('<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/></svg>', '使用');
+      var edBtn = mBtn('<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 0 1 4 4L7 21l-5 1 1-5z"/></svg>', '编辑');
+      var delBtn = mBtn('<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>', '删除');
+      delBtn.classList.add('del');
+
+      useBtn.addEventListener('click', function (e) { e.stopPropagation(); activeIdx = i; saveActiveIdx(); showStatus('已切换：' + (m.name || m.model)); renderModels(); });
+      edBtn.addEventListener('click', function (e) { e.stopPropagation(); openEditor(i); });
+      delBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        models.splice(i, 1);
+        if (activeIdx === i) activeIdx = -1; else if (activeIdx > i) activeIdx--;
+        saveModels(); saveActiveIdx(); renderModels();
+      });
+      act.appendChild(useBtn); act.appendChild(edBtn); act.appendChild(delBtn);
+
+      item.appendChild(info); item.appendChild(act);
+      item.addEventListener('click', function () { activeIdx = i; saveActiveIdx(); renderModels(); });
+      modelList.appendChild(item);
+    });
+  }
+  function mBtn(inner, title) {
+    var b = document.createElement('button'); b.title = title; b.innerHTML = inner; return b;
+  }
+
+  // 打开编辑器（i>=0 编辑，-1 新建）
+  function openEditor(i) {
+    editingIdx = i;
+    modelEditor.classList.remove('hidden');
+    if (i >= 0 && models[i]) {
+      edName.value = models[i].name || '';
+      edBase.value = models[i].base || '';
+      edKey.value = models[i].key || '';
+      edModel.value = models[i].model || '';
+    } else {
+      edName.value = ''; edBase.value = ''; edKey.value = ''; edModel.value = '';
+    }
+    modelStatus.textContent = '';
+  }
+  function closeEditor() {
+    modelEditor.classList.add('hidden');
+    editingIdx = -1;
+  }
+  function showStatus(t) {
+    modelStatus.textContent = t; modelStatus.className = 'api-status ok';
+    setTimeout(function () { modelStatus.textContent = ''; modelStatus.className = 'api-status'; }, 1600);
+  }
+
+  $('addModel').addEventListener('click', function () { openEditor(-1); });
+  $('saveModel').addEventListener('click', function () {
+    var name = edName.value.trim(), base = edBase.value.trim(), key = edKey.value.trim(), model = edModel.value.trim();
+    if (!base || !key || !model) { modelStatus.textContent = '接口地址 / Key / 模型 必填'; modelStatus.className = 'api-status err'; return; }
+    if (editingIdx >= 0) {
+      models[editingIdx] = { name: name, base: base, key: key, model: model };
+      showStatus('已保存');
+    } else {
+      models.push({ name: name || '未命名', base: base, key: key, model: model });
+      if (activeIdx < 0) activeIdx = models.length - 1;
+      showStatus('已添加');
+    }
+    saveModels(); saveActiveIdx(); renderModels(); closeEditor();
+  });
+  $('cancelModel').addEventListener('click', closeEditor);
+
+  engineBadge.addEventListener('click', function () { toggleApiPanel(); });
+  $('apiBtn').addEventListener('click', function () { toggleApiPanel(); });
+  function toggleApiPanel() {
+    apiPanel.classList.toggle('hidden');
+    if (!apiPanel.classList.contains('hidden')) { setEngine(engine); renderModels(); fillTmt(); }
+  }
+  segBtns.forEach(function (b) {
+    b.addEventListener('click', function () { setEngine(b.getAttribute('data-engine')); });
+  });
+
+  // 腾讯云 TMT 配置
+  function fillTmt() {
+    $('tmtSecretId').value = tmtConfig.secretId || '';
+    $('tmtSecretKey').value = tmtConfig.secretKey || '';
+    $('tmtRegion').value = tmtConfig.region || 'ap-guangzhou';
+  }
+  $('saveTmt').addEventListener('click', function () {
+    tmtConfig.secretId = $('tmtSecretId').value.trim();
+    tmtConfig.secretKey = $('tmtSecretKey').value.trim();
+    tmtConfig.region = $('tmtRegion').value.trim() || 'ap-guangzhou';
+    saveTmtConfig();
+    var st = $('tmtStatus');
+    st.textContent = '已保存'; st.className = 'api-status ok';
+    setTimeout(function () { st.textContent = ''; st.className = 'api-status'; }, 1600);
+  });
+
+  // 记住上次选择的引擎 & 初始化
+  try {
+    var savedEngine = localStorage.getItem('zz-trans-engine');
+    if (savedEngine === 'ai') setEngine('ai');
+    else if (savedEngine === 'tencent') setEngine('tencent');
+    else setEngine('google');
+  } catch (e) { setEngine('google'); }
+  renderEngineBadge();
+
+  populate();
+  renderHistory();
+  renderModels();
+  inputEl.focus();
+})();
+</script>
+</body>
+</html>
