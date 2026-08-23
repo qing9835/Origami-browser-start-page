@@ -3,7 +3,13 @@
 > 个人浏览器起始页 / 新标签页。纯前端单文件，双击 `index.html` 即可使用。
 > 「在朦胧光影中，让每一次搜索与跳转，都成为一场极简的日常仪式。」
 
+## 效果预览
+
+![折纸起始页预览](screenshot.jpg)
+
 ---
+
+
 
 ## 一、技术栈与依赖
 
@@ -28,6 +34,7 @@
 ├── translate.html    # 翻译页（Google 免费 / AI 大模型 / 腾讯 TMT）
 ├── lucide.min.js     # Lucide 图标库（自托管，不依赖 CDN）
 ├── favicon.svg       # 站点图标（彩纸千纸鹤）
+├── screenshot.jpg    # 效果预览图（本文档顶部展示）
 ├── README.md         # 本文档（对公开仓库）
 ├── wallpapaer/       # 壁纸资源（5 张完整背景 + 5 张缩略图）
 │   ├── bg-zp5z2w.jpg        # 默认壁纸（压缩后的完整背景图）
