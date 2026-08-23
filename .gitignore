@@ -1,11 +1,11 @@
 # 部署脚本/临时目录（含服务器信息，不公开）
 _deploy/
 
+# 部署文档（含服务器 IP/路径等运维信息，不公开，相关内容已整合进 README）
+DEPLOY.md
+
 # 系统/编辑器
 .DS_Store
 Thumbs.db
 desktop.ini
 *.log
-
-# 本地生成的壁纸大图备份已在 wallpapaer/ 下，按需保留；原始 PNG 如需忽略可取消下一行
-# wallpapaer/wallhaven-*.png

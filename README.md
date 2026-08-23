@@ -28,17 +28,17 @@
 ├── translate.html    # 翻译页（Google 免费 / AI 大模型 / 腾讯 TMT）
 ├── lucide.min.js     # Lucide 图标库（自托管，不依赖 CDN）
 ├── favicon.svg       # 站点图标（彩纸千纸鹤）
-├── README.md         # 本文档
-├── DEPLOY.md         # 部署文档
-├── wallpapaer/       # 壁纸资源
+├── README.md         # 本文档（对公开仓库）
+├── wallpapaer/       # 壁纸资源（5 张完整背景 + 5 张缩略图）
 │   ├── bg-zp5z2w.jpg        # 默认壁纸（压缩后的完整背景图）
 │   ├── wp-*.jpg             # 其余壁纸的「完整背景图」
-│   ├── tb-*.jpg             # 各壁纸的「缩略图」（设置面板预览）
-│   └── wallhaven-*.png      # 壁纸原始大图（未压缩，仅存档备份）
-└── _deploy/
+│   └── tb-*.jpg             # 各壁纸的「缩略图」（设置面板预览）
+└── _deploy/          # 仅本地使用，不进公开仓库（.gitignore 忽略）
     ├── site/         # 部署暂存目录（deploy_zz.py 整体打包上传）
-    └── deploy_zz.py  # 一键部署脚本（paramiko）
+    └── deploy_zz.py  # 一键部署脚本（paramiko，含服务器信息）
 ```
+
+> `DEPLOY.md`（部署运维详版，含服务器 IP/路径/Nginx）仅存在本地，不进公开仓库；其公开部分已整合进本 README。
 
 > 运行页面只引用 `wp-*` / `bg-*` 与 `tb-*`，不加载原始 PNG。`_deploy/` 仅用于上线，本地双击 `index.html` 不会用到。
 
@@ -157,8 +157,37 @@
 
 ## 九、运行 / 部署
 
-- **本地**：双击 `index.html` 即可（无需构建、无需后端；壁纸走相对路径，离线可用）。联网才能用搜索联想。
-- **部署**：纯静态站点 + 自托管 `lucide.min.js` + `favicon.svg`，整体上传即可。详见 `DEPLOY.md`（已部署到 `https://dreamer.asia/zz/`）。
+### 本地运行
+双击 `index.html` 即可（无需构建、无需后端；壁纸走相对路径，离线可用）。联网才能用搜索联想。
+
+### 部署到静态托管
+这是一个**纯静态站点**（含自托管 `lucide.min.js` + `favicon.svg`），放到任意静态托管即可：
+
+- **Nginx / 任意静态服务器**：直接把 `index.html`、`translate.html`、`lucide.min.js`、`favicon.svg`、`wallpapaer/` 整目录上传到站点根即可，无需 Node/数据库。
+- **GitHub Pages / 阿里云 OSS / 对象存储**：同样整体上传即可。
+
+> 站点里除壁纸走相对路径外，无任何后端依赖；`translate.html` 为独立翻译页，可单独部署。
+
+### 一键部署脚本
+项目预置了 `_deploy/deploy_zz.py`（paramiko 一键打包上传）。**该脚本及其部署配置含服务器信息，默认不进仓库**（已被 `.gitignore` 忽略），本地自行使用：
+
+```powershell
+# 先把最新文件同步到 _deploy/site/，再执行：
+python _deploy/deploy_zz.py <服务器密码>
+```
+
+脚本会：打包 `_deploy/site` → 上传 → 服务器解压到部署目录（备份旧目录后覆盖），输出 `DEPLOY_OK` 即成功。
+
+### 推送到 GitHub
+仓库即本目录。日常改动后：
+
+```bash
+git add -A
+git commit -m "..." 
+git push
+```
+
+> 注：`DEPLOY.md`（含服务器 IP、路径、Nginx 配置等运维信息）与 `_deploy/`（含密码脚本）**都不进公开仓库**，相关内容已整合进本 README。
 
 ---
 
@@ -167,3 +196,4 @@
 - 搜索联想依赖各引擎第三方接口的可用性；不同网络环境下某些引擎可能无联想（属外部限制，不影响搜索）。
 - 页面未接入任何前端构建工具（无打包），便于直接改源码。
 - 翻译页 `translate.html` 为独立页面，可单独部署/使用。
+- 自定义壁纸/搜索引擎/底部导航均保存在浏览器 `localStorage`，各浏览器独立，不清除浏览器数据则不丢失。
