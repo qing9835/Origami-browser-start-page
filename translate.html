@@ -146,6 +146,7 @@
   }
   .badge-btn.ai { color: var(--accent); border-color: var(--accent); }
   .badge-btn.tencent { color: #4472c4; border-color: #4472c4; }
+  .badge-btn.mymemory { color: #e65100; border-color: #e65100; }
   .gearbtn {
     width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
     border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer;
@@ -237,10 +238,13 @@
     <div id="apiPanel" class="panel hidden">
       <p class="panel-title">翻译引擎</p>
       <div class="seg">
-        <button type="button" class="seg-btn active" data-engine="google">Google 免费</button>
+        <button type="button" class="seg-btn active" data-engine="google">Google</button>
+        <button type="button" class="seg-btn" data-engine="mymemory">MyMemory</button>
         <button type="button" class="seg-btn" data-engine="tencent">腾讯</button>
         <button type="button" class="seg-btn" data-engine="ai">AI 大模型</button>
       </div>
+      <!-- MyMemory：免 Key 免费接口，无需配置 -->
+      <div id="mmInfo" class="hidden soft" style="margin-bottom:14px">MyMemory：免费免 Key 翻译接口，直接使用。匿名约 5000 字符/天，适合短句翻译。</div>
       <!-- 腾讯云 TMT 配置 -->
       <div id="tmtConfig" class="hidden">
         <div class="field">
@@ -265,7 +269,7 @@
         <!-- 已保存的模型列表 -->
         <div class="listlabel">已保存的模型 <button type="button" class="addbtn" id="addModel">＋ 添加</button></div>
         <div id="modelList" class="model-list"></div>
-        <div class="empty" id="modelEmpty">还没有保存的模型，点「＋ 添加」创建一个。</div>
+        <div class="model-empty" id="modelEmpty">还没有保存的模型，点「＋ 添加」创建一个。</div>
 
         <!-- 编辑器（点击列表项/添加时弹出表单）：默认隐藏 -->
         <div id="modelEditor" class="editor hidden">
@@ -390,8 +394,8 @@
   // 请求发往的地址：部署版(VPS 上有 Nginx 代理)走 /zz/api/tmt 中转，file:// 下回退到腾讯直连
   // 签名 host 始终是 TMT_HOST（腾讯按它校验），只有 HTTP 请求的 URL 换到代理
   function tmtEndpoint() {
-    if (location.origin && /dreamer\.asia$/.test(location.hostname)) {
-      return location.origin + '/zz/api/tmt';
+    if (location.origin && /serendipity\.beauty$/.test(location.hostname)) {
+      return location.origin + '/api/tmt';
     }
     return 'https://' + TMT_HOST + '/';
   }
@@ -479,21 +483,15 @@
     var inner = sha256Bytes(ipad.concat(utf8Bytes(msg)));
     return sha256Bytes(opad.concat(inner));
   }
-  // hex 版（纯文本 key 用）
-  function hmacSha256Hex(key, msg) { return bytesToHex(hmacSha256Bytes(key, msg)); }
 
-  function tmtTranslate(q, from, to) {
-    if (!tmtConfig.secretId || !tmtConfig.secretKey) {
-      return Promise.reject(new Error('请先在上方齿轮配置腾讯云 SecretId / SecretKey'));
-    }
-    var region = tmtConfig.region || 'ap-guangzhou';
+  // 腾讯云 TMT 通用请求：TC3-HMAC-SHA256 签名 + fetch（text 翻译 / 语言检测共用）
+  function tmtRequest(action, payload) {
     var timestamp = Math.floor(Date.now() / 1000);
     var date = new Date(timestamp * 1000).toISOString().slice(0, 10);
-
-    var payload = JSON.stringify({ SourceText: q, Source: from, Target: to, ProjectId: 0 });
+    var body = JSON.stringify(payload);
     var canonicalHeaders = 'content-type:application/json; charset=utf-8\nhost:' + TMT_HOST + '\n';
     var signedHeaders = 'content-type;host';
-    var hashedPayload = sha256Hex(payload);
+    var hashedPayload = sha256Hex(body);
     var canonicalRequest = 'POST\n/\n\n' + canonicalHeaders + '\n' + signedHeaders + '\n' + hashedPayload;
     var credentialScope = date + '/' + TMT_SERVICE + '/tc3_request';
     var stringToSign = 'TC3-HMAC-SHA256\n' + timestamp + '\n' + credentialScope + '\n' + sha256Hex(canonicalRequest);
@@ -510,22 +508,32 @@
         'Authorization': authorization,
         'Content-Type': 'application/json; charset=utf-8',
         'Host': TMT_HOST,
-        'X-TC-Action': TMT_ACTION,
+        'X-TC-Action': action,
         'X-TC-Version': TMT_VERSION,
         'X-TC-Timestamp': String(timestamp),
-        'X-TC-Region': region
+        'X-TC-Region': tmtConfig.region || 'ap-guangzhou'
       },
-      body: payload
-    })
-      .then(function (r) {
-        if (!r.ok) return r.text().then(function (t) { throw new Error('HTTP ' + r.status + (t ? ' · ' + t.slice(0, 160) : '')); });
-        return r.json();
-      })
-      .then(function (data) {
-        var resp = data && data.Response;
-        if (!resp || !resp.TargetText) throw new Error(resp && resp.Error ? resp.Error.Message : '返回格式异常');
-        return { text: resp.TargetText, detected: resp.Source || from };
-      });
+      body: body
+    }).then(function (r) {
+      if (!r.ok) return r.text().then(function (t) { throw new Error('HTTP ' + r.status + (t ? ' · ' + t.slice(0, 160) : '')); });
+      return r.json();
+    });
+  }
+  function requireTmtConfig() {
+    if (!tmtConfig.secretId || !tmtConfig.secretKey) {
+      return Promise.reject(new Error('请先在上方齿轮配置腾讯云 SecretId / SecretKey'));
+    }
+    return Promise.resolve();
+  }
+
+  function tmtTranslate(q, from, to) {
+    return requireTmtConfig().then(function () {
+      return tmtRequest(TMT_ACTION, { SourceText: q, Source: from, Target: to, ProjectId: 0 });
+    }).then(function (data) {
+      var resp = data && data.Response;
+      if (!resp || !resp.TargetText) throw new Error(resp && resp.Error ? resp.Error.Message : '返回格式异常');
+      return { text: resp.TargetText, detected: resp.Source || from };
+    });
   }
 
   // TMT 语言码映射：界面 zh-CN -> TMT zh
@@ -535,49 +543,13 @@
   }
   // TMT 语言检测（LanguageDetect 动作；同一签名）
   function tmtDetect(q) {
-    if (!tmtConfig.secretId || !tmtConfig.secretKey) {
-      return Promise.reject(new Error('请先在上方齿轮配置腾讯云 SecretId / SecretKey'));
-    }
-    var region = tmtConfig.region || 'ap-guangzhou';
-    var timestamp = Math.floor(Date.now() / 1000);
-    var date = new Date(timestamp * 1000).toISOString().slice(0, 10);
-    var service = TMT_SERVICE;
-    var action = 'LanguageDetect';
-    var payload = JSON.stringify({ Text: q, ProjectId: 0 });
-    var canonicalHeaders = 'content-type:application/json; charset=utf-8\nhost:' + TMT_HOST + '\n';
-    var signedHeaders = 'content-type;host';
-    var hashedPayload = sha256Hex(payload);
-    var canonicalRequest = 'POST\n/\n\n' + canonicalHeaders + '\n' + signedHeaders + '\n' + hashedPayload;
-    var credentialScope = date + '/' + service + '/tc3_request';
-    var stringToSign = 'TC3-HMAC-SHA256\n' + timestamp + '\n' + credentialScope + '\n' + sha256Hex(canonicalRequest);
-    var secretDate = hmacSha256Bytes('TC3' + tmtConfig.secretKey, date);
-    var secretService = hmacSha256Bytes(secretDate, service);
-    var secretSigning = hmacSha256Bytes(secretService, 'tc3_request');
-    var signature = bytesToHex(hmacSha256Bytes(secretSigning, stringToSign));
-    var authorization = 'TC3-HMAC-SHA256 Credential=' + tmtConfig.secretId + '/' + credentialScope +
-      ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
-    return fetch(tmtEndpoint(), {
-      method: 'POST',
-      headers: {
-        'Authorization': authorization,
-        'Content-Type': 'application/json; charset=utf-8',
-        'Host': TMT_HOST,
-        'X-TC-Action': action,
-        'X-TC-Version': TMT_VERSION,
-        'X-TC-Timestamp': String(timestamp),
-        'X-TC-Region': region
-      },
-      body: payload
-    })
-      .then(function (r) {
-        if (!r.ok) return r.text().then(function (t) { throw new Error('HTTP ' + r.status + (t ? ' · ' + t.slice(0, 160) : '')); });
-        return r.json();
-      })
-      .then(function (data) {
-        var resp = data && data.Response;
-        if (!resp || !resp.Lang) throw new Error(resp && resp.Error ? resp.Error.Message : '返回格式异常');
-        return resp.Lang; // 如 'zh' / 'en' / 'ja' ...
-      });
+    return requireTmtConfig().then(function () {
+      return tmtRequest('LanguageDetect', { Text: q, ProjectId: 0 });
+    }).then(function (data) {
+      var resp = data && data.Response;
+      if (!resp || !resp.Lang) throw new Error(resp && resp.Error ? resp.Error.Message : '返回格式异常');
+      return resp.Lang; // 如 'zh' / 'en' / 'ja' ...
+    });
   }
 
   /* AI 双向互译提示词：目标自动时中→英、英→中、其余→中文 */
@@ -594,29 +566,24 @@
       '只输出译文本身，不要解释、不要加引号、不要输出前缀，保留原意、语调和换行。';
   }
 
+  function addLangOptions(select, first) {
+    var o = document.createElement('option');
+    o.value = first[0]; o.textContent = first[1];
+    select.appendChild(o);
+    LANGS.forEach(function (l) {
+      var opt = document.createElement('option');
+      opt.value = l[0]; opt.textContent = l[1];
+      select.appendChild(opt);
+    });
+  }
   function populate() {
-    var auto = document.createElement('option');
-    auto.value = 'auto'; auto.textContent = '自动检测';
-    fromEl.appendChild(auto);
-    LANGS.forEach(function (l) {
-      var o = document.createElement('option');
-      o.value = l[0]; o.textContent = l[1];
-      fromEl.appendChild(o);
-    });
-    // 目标语言：第一个为“自动”（自动互译：中→英、英→中）
-    var tauto = document.createElement('option');
-    tauto.value = 'auto'; tauto.textContent = '自动（中英互译）';
-    toEl.appendChild(tauto);
-    LANGS.forEach(function (l) {
-      var o = document.createElement('option');
-      o.value = l[0]; o.textContent = l[1];
-      toEl.appendChild(o);
-    });
+    addLangOptions(fromEl, ['auto', '自动检测']);
+    addLangOptions(toEl, ['auto', '自动（中英互译）']);
     fromEl.value = 'auto';
     toEl.value = 'auto';
   }
 
-  var timer = null, seq = 0;
+  var seq = 0; // 请求序号：用于丢弃过期响应
 
   // 核心请求：按给定 sl/tl 取译文，返回 {text, detected}
   function doTranslate(q, from, to) {
@@ -667,6 +634,21 @@
       });
   }
 
+  // MyMemory 免费翻译（免 Key，GET + CORS 全开；匿名约 5000 字符/天）
+  function myMemoryTranslate(q, from, to) {
+    var url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(q)
+      + '&langpair=' + encodeURIComponent(from + '|' + to);
+    return fetch(url)
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) {
+        if (!data || data.responseStatus !== 200) throw new Error((data && data.responseDetails) || '接口错误');
+        if (data.quotaFinished) throw new Error('MyMemory 今日免费额度已用完，请换引擎或明日再试');
+        var text = data.responseData && data.responseData.translatedText;
+        if (!text) throw new Error('返回格式异常');
+        return { text: text, detected: data.responseData.detectedLanguage || '' };
+      });
+  }
+
   // 粗略判断源语言（用于 AI 模式下的“检测为”标签）
   function guessLang(q) {
     var cjk = (q.match(/[\u4e00-\u9fff]/g) || []).length;
@@ -680,16 +662,17 @@
     if (!q) { resultEl.innerHTML = '<span class="hint">译文会显示在这里</span>'; return; }
     var from = fromOverride || fromEl.value;
     var to = toOverride || toEl.value;
+    // 相同语言校验：手动选择同一种语言时直接提示，避免接口报错（Google/MyMemory 均无意义）
+    if (from !== 'auto' && from === to) {
+      resultEl.innerHTML = '<span class="err">源语言与目标语言相同，请选择不同的语言。</span>';
+      return;
+    }
     var my = ++seq;
     loadingEl.style.display = 'flex';
     resultEl.innerHTML = '';
 
     var showResult = function (text, detected, finalTo) {
-      var langName = '';
-      var hit = LANGS.filter(function (l) { return l[0] === detected; })[0];
-      if (from === 'auto' && detected)
-        langName = ' · 检测为 ' + (hit ? hit[1] : detected);
-      resultEl.innerHTML = escapeHtml(text) + '<div class="meta">' + langName + '</div>';
+      resultEl.innerHTML = escapeHtml(text) + '<div class="meta">' + detectedLabel(detected, from === 'auto') + '</div>';
 
       // 存入历史（去重：同一 源语言+原文 视为同一条，移到最前）
       var actualFrom = from === 'auto' ? (detected || 'auto') : from;
@@ -705,28 +688,21 @@
       loadingEl.style.display = 'none';
       showResult(text, detected, finalTo);
     };
-    var fail = function (e) {
+    var fail = function (e, hint) {
       if (my !== seq) return;
       loadingEl.style.display = 'none';
       resultEl.innerHTML = '<span class="err">翻译失败：' + escapeHtml(e.message || '网络错误') +
-        '<br><span style="font-size:12px;color:#9aa1ad">可能接口不可达（需联网 / 部分地区需代理），请检查网络或更换接口。</span></span>';
+        '<br><span style="font-size:12px;color:#9aa1ad">' + escapeHtml(hint || '可能接口不可达（需联网 / 部分地区需代理），请检查网络或更换接口。') + '</span></span>';
     };
 
     // ---- AI 模式：一次请求，模型自行判断源语言并双向互译 ----
     if (engine === 'ai') {
       aiTranslate(q, from, to)
         .then(function (res) {
-          if (my !== seq) return;
-          loadingEl.style.display = 'none';
           var finalTo = to === 'auto' ? (res.detected === 'zh-CN' ? 'en' : 'zh-CN') : to;
-          showResult(res.text, res.detected, finalTo);
+          finish(res.text, res.detected, finalTo);
         })
-        .catch(function (e) {
-          if (my !== seq) return;
-          loadingEl.style.display = 'none';
-          resultEl.innerHTML = '<span class="err">翻译失败：' + escapeHtml(e.message || '网络错误') +
-            '<br><span style="font-size:12px;color:#9aa1ad">AI 模式请先点右上角齿轮配置接口地址 / Key / 模型。</span></span>';
-        });
+        .catch(function (e) { fail(e, 'AI 模式请先点右上角齿轮配置接口地址 / Key / 模型。'); });
       return;
     }
 
@@ -760,6 +736,51 @@
       return;
     }
 
+    // ---- MyMemory 免费模式：免 Key；源自动用 Autodetect，目标自动时先探测再互译 ----
+    if (engine === 'mymemory') {
+      var mmHint = 'MyMemory 免费接口（每日约 5000 字符），请检查网络或换引擎';
+      var mmSameLang = function () {
+        resultEl.innerHTML = '<span class="err">检测到源语言与目标语言相同，请选择不同的语言。</span>';
+        loadingEl.style.display = 'none';
+      };
+      var mmRun = function (sl, tl) {
+        return myMemoryTranslate(q, sl, tl).then(function (res) {
+          if (my !== seq) return;
+          loadingEl.style.display = 'none';
+          showResult(res.text, res.detected, tl);
+        }).catch(function (e) {
+          if (my !== seq) return;
+          if (/distinct\s*languages/i.test(String(e.message))) { mmSameLang(); }
+          else { fail(e, mmHint); }
+        });
+      };
+      if (to === 'auto') {
+        // 先探测源语言（Autodetect → 中文），再按互译规则决定目标
+        myMemoryTranslate(q, 'Autodetect', 'zh-CN')
+          .then(function (res) {
+            if (my !== seq) return;
+            var det = String(res.detected || '').toLowerCase();
+            if (det.indexOf('zh') === 0) {
+              mmRun('zh-CN', 'en');                        // 中文 → 英文
+            } else {
+              finish(res.text, res.detected, 'zh-CN');     // 其他 → 中文（探测结果已含译文）
+            }
+          })
+          .catch(function (e) {
+            if (my !== seq) return;
+            // 输入为中文时，Autodetect→zh-CN 触发「同语言」403 → 按中文源处理
+            if (/distinct\s*languages/i.test(String(e.message))) {
+              mmRun('zh-CN', 'en');
+            } else {
+              fail(e, mmHint);
+            }
+          });
+      } else {
+        mmRun(from === 'auto' ? 'Autodetect' : from, to);
+      }
+      return;
+    }
+
     // ---- Google 模式 ----
     // 目标为“自动”：先检测源，再按互译规则决定目标
     if (to === 'auto') {
@@ -771,11 +792,6 @@
           if (det === 'zh-CN') finalTo = 'en';       // 中文 → 英文
           else if (det === 'en') finalTo = 'zh-CN';  // 英文 → 中文
           else finalTo = 'zh-CN';                    // 其他 → 中文
-          if (finalTo === 'zh-CN' && det === 'zh-CN') {
-            // 探测用的目标恰好是最终目标（中文→中文不需要），仍是中文→英文
-            // 上面已判定 finalTo='en'，不会走到这；此处兜底
-            finalTo = 'en';
-          }
           if (finalTo === 'zh-CN') {
             // 可复用第一次结果（源非中文，目标都是中文）
             finish(res.text, det, finalTo);
@@ -794,6 +810,12 @@
     }
   }
 
+  // “检测为 X”标签（源语言为自动时显示）
+  function detectedLabel(code, isAuto) {
+    if (!isAuto || !code) return '';
+    var hit = LANGS.filter(function (l) { return l[0] === code; })[0];
+    return ' · 检测为 ' + (hit ? hit[1] : code);
+  }
   function langName(code) {
     if (code === 'auto') return '自动';
     var hit = LANGS.filter(function (l) { return l[0] === code; })[0];
@@ -860,9 +882,7 @@
       translate();
     } else {
       // 直接显示已保存的译文，不再请求网络
-      var hit = LANGS.filter(function (l) { return l[0] === h.from; })[0];
-      var langName = (fromEl.value === 'auto' && h.from) ? ' · 检测为 ' + (hit ? hit[1] : h.from) : '';
-      resultEl.innerHTML = escapeHtml(h.dst) + '<div class="meta">' + langName + '</div>';
+      resultEl.innerHTML = escapeHtml(h.dst) + '<div class="meta">' + detectedLabel(h.from, fromEl.value === 'auto') + '</div>';
     }
   }
 
@@ -876,10 +896,9 @@
     counterEl.textContent = inputEl.value.length;
   });
   inputEl.addEventListener('keydown', function (e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { clearTimeout(timer); translate(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { translate(); }
   });
   $('translateBtn').addEventListener('click', function () {
-    clearTimeout(timer);
     if (!inputEl.value.trim()) { inputEl.focus(); return; }
     translate();
   });
@@ -921,16 +940,19 @@
   resultEl.appendChild(copy);
 
   // ---- 引擎 / 模型设置 ----
-  var engineBadge = $('engineBadge'), apiPanel = $('apiPanel'), aiConfigEl = $('aiConfig'), tmtConfigEl = $('tmtConfig');
+  var engineBadge = $('engineBadge'), apiPanel = $('apiPanel'), aiConfigEl = $('aiConfig'), tmtConfigEl = $('tmtConfig'), mmInfoEl = $('mmInfo');
   var segBtns = document.querySelectorAll('.seg-btn');
   var modelList = $('modelList'), modelEmpty = $('modelEmpty'), modelEditor = $('modelEditor');
   var edName = $('edName'), edBase = $('edBase'), edKey = $('edKey'), edModel = $('edModel'), modelStatus = $('modelStatus');
   var editingIdx = -1; // -1 表示新建
 
   function renderEngineBadge() {
-    engineBadge.textContent = engine === 'ai' ? 'AI 大模型' : (engine === 'tencent' ? '腾讯' : 'Google');
+    engineBadge.textContent = engine === 'ai' ? 'AI 大模型'
+      : (engine === 'tencent' ? '腾讯'
+        : (engine === 'mymemory' ? 'MyMemory' : 'Google'));
     engineBadge.classList.toggle('ai', engine === 'ai');
     engineBadge.classList.toggle('tencent', engine === 'tencent');
+    engineBadge.classList.toggle('mymemory', engine === 'mymemory');
   }
   function setEngine(e) {
     engine = e;
@@ -940,6 +962,7 @@
     });
     aiConfigEl.classList.toggle('hidden', e !== 'ai');
     tmtConfigEl.classList.toggle('hidden', e !== 'tencent');
+    mmInfoEl.classList.toggle('hidden', e !== 'mymemory');
     renderEngineBadge();
   }
 
@@ -1055,6 +1078,7 @@
     var savedEngine = localStorage.getItem('zz-trans-engine');
     if (savedEngine === 'ai') setEngine('ai');
     else if (savedEngine === 'tencent') setEngine('tencent');
+    else if (savedEngine === 'mymemory') setEngine('mymemory');
     else setEngine('google');
   } catch (e) { setEngine('google'); }
   renderEngineBadge();

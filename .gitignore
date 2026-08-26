@@ -4,6 +4,9 @@ _deploy/
 # 部署文档（含服务器 IP/路径等运维信息，仅本地，不公开）
 DEPLOY.md
 
+# 本地 AI 工具记忆（不公开）
+.workbuddy/
+
 # 系统/编辑器
 .DS_Store
 Thumbs.db
